@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>5-Column Menu Template</title>
+    <link rel="stylesheet" href="https://unpkg.com/@kfonts/nanum-square-round/index.css">
+  <style>
+    html, body {
+      width: 1920px;
+      height: 1080px;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'NanumSquareRound', sans-serif;
+    }
+    .top-container {
+      width: 50vw;
+      min-width: 800px;
+      max-width: 1200px;
+      height: 120px;
+      margin: 10px auto auto 510px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      color: #FC512B
+    }
+
+    .top-child-row {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    .top-child {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .top-child.left,
+    .top-child.right {
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+    .top-child.left {
+      flex: 1 1 0;
+    }
+    .top-child.right {
+      flex: 1 1 0;
+    }
+    .top-child.middle {
+      flex: 1.5 1.5 0;
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .top-child-middle-text-main {
+      font-size: 3rem;
+      font-weight: 800;
+      text-align: center;
+    }
+    .top-child-middle-text-sub {
+      font-size: 1.6rem;
+      font-weight: 800;
+      text-align: center;
+      margin-top: 4px;
+    }
+    .top-divider-right {
+      margin-left: 10px; /* or your preferred spacing */
+    }
+    .top-divider {
+      width: 2px;
+      height: 60%;
+      background: #FC512B;
+      border-radius: 2px;
+      align-self: center;
+    }
+    .top-child-left-text-main,
+    .top-child-left-text-sub,
+    .top-child-middle-text-main,
+    .top-child-middle-text-sub,
+    .top-child-right-text-main,
+    .top-child-right-text-sub {
+      text-shadow:
+        -2px -2px 0 #000,
+        2px -2px 0 #000,
+        -2px  2px 0 #000,
+        2px  2px 0 #000,
+        0px  2px 0 #000,
+        2px  0px 0 #000,
+        0px -2px 0 #000,
+        -2px  0px 0 #000;
+    }
+    .menu-row {
+      display: flex;
+      width: 100vw;
+      height: 896px;
+      max-height: 896px;
+    }
+    .menu-container {
+      height: 100%;
+      max-height: 826px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .menu-container:not(.empty) {
+      flex: 1 1 0;
+      background: #fff;
+      border-radius: 32px;
+      border: 3px solid #FC512B;
+      box-shadow: 12px 12px 0 0 #FC512B;
+      margin: 32px 16px;
+    }
+    .empty {
+      flex: 1.2 1 0;
+      background: transparent;
+      box-shadow: none;
+      margin: 32px 16px;
+    }
+    .menu-top-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 16px 0;
+      box-sizing: border-box;
+    }
+    .menu-title {
+      margin-top: 32px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 3.2rem;
+      font-weight: 900;
+      color: #fff;
+      /* Orange outline using text-shadow */
+      text-shadow:
+        -2px -2px 0 #FC512B,
+         2px -2px 0 #FC512B,
+        -2px  2px 0 #FC512B,
+         2px  2px 0 #FC512B,
+         0px  2px 0 #FC512B,
+         2px  0px 0 #FC512B,
+         0px -2px 0 #FC512B,
+        -2px  0px 0 #FC512B;
+    }
+    .menu-items {
+      display: flex;
+      flex-direction: column;
+      width: 75%;
+      margin-bottom: 24px;
+      font-weight: 900;
+    }
+    .menu-item {
+      color: #585858;
+      font-size: 1.8rem;
+      margin: 5px 0 0 0;
+    }
+    .menu-bottom-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 90%;
+      margin: 16px auto 16px auto;
+    }
+    .menu-divider-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      margin-top: 16px;
+    }
+    .menu-divider-circle {
+      width: 55px;
+      height: 55px;
+      border-radius: 50%;
+      background: #FC512B;
+      margin-right: 5px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .menu-divider-circle-text {
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .menu-divider {
+      flex: 1;
+      height: 1px;
+      background: #585858;
+      border-radius: 1px;
+      opacity: 0.4;
+    }
+    .menu-footer-items {
+      display: flex;
+      flex-direction: column;
+      margin-top: 10px;
+      margin-bottom: 32px;
+      gap: 6px; /* space between footer items */
+      width: 90%;
+      justify-content: center;
+      align-items: center;
+    }
+    .menu-footer-item {
+      color: #FC512B;
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-container">
+  <div class="top-child-row">
+    <div class="top-child left">
+      <div class="top-child-left-text-main">월-금 07:30 OPEN</div>
+      <!-- <div class="top-child-left-text-main">토 19:30 OPEN</div> -->
+      <div class="top-child-left-text-sub">토일 CLOSE</div>
+    </div>
+    <div class="top-divider"></div>
+    <div class="top-child middle">
+      <div class="top-child-middle-text-main">요모 사다리게임</div>
+      <div class="top-child-middle-text-sub">
+        즐찾과 추천은 사랑
+        <span style="color:#FC512B;">♥</span>
+      </div>
+    </div>
+    <div class="top-divider top-divider-right"></div>
+    <div class="top-child right">
+      <div class="top-child-right-text-main">선택2 / 꽝1 / 요모픽1</div>
+      <div class="top-child-right-text-sub">12465 택2 꽝x</div>
+    </div>
+  </div>
+</div>
+  <div class="menu-row">
+    <div class="menu-container">
+      <div class="menu-top-container">
+        <div class="menu-title">1000개</div>
+        <div class="menu-items">
+          <div class="menu-item">역팬 100개</div>
+          <div class="menu-item">닉방셀 </div>
+          <div class="menu-item">당일셀카</div>
+          <div class="menu-item">뽑기 20장</div>
+          <div class="menu-item">역구독+구독닉</div>
+          <div class="menu-item">방송연장 30분</div>
+          <div class="menu-item">방종 후 롤 한판</div>
+          <div class="menu-item">전용 명찰 제작</div>
+          <div class="menu-item">비공개셀카</div>
+        </div>
+      </div>
+      <div class="menu-bottom-container">
+        <div class="menu-divider-row">
+          <div class="menu-divider-circle">
+            <div class="menu-divider-circle-text">열혈</div>
+          </div>
+          <div class="menu-divider"></div>
+        </div>
+        <div class="menu-footer-items">
+          <div class="menu-footer-item">역팬 165개</div>
+          <div class="menu-footer-item">전화통화 30분</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-container">
+      <div class="menu-top-container">
+        <div class="menu-title">2865개</div>
+        <div class="menu-items">
+          <div class="menu-item">역팬 200개</div>
+          <div class="menu-item">손편지+요모마음</div>
+          <div class="menu-item">방종후 롤 삼세판</div>
+          <div class="menu-item">뽑기 33장</div>
+          <div class="menu-item">일주일 모닝콜</div>
+          <div class="menu-item">하나뿐인 영상편지</div>
+          <div class="menu-item">하나뿐인 녹음파일</div>
+          <div class="menu-item">하루 일기 남기기</div>
+          <div class="menu-item">전용 시그풍 제작</div>
+        </div>
+      </div>
+      <div class="menu-bottom-container">
+        <div class="menu-divider-row">
+          <div class="menu-divider-circle">
+            <div class="menu-divider-circle-text">열혈</div>
+          </div>
+          <div class="menu-divider"></div>
+        </div>
+        <div class="menu-footer-items">
+          <div class="menu-footer-item">전용 입장효과제작</div>
+          <div class="menu-footer-item">전화통화 1시간</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-container empty"></div>
+    <div class="menu-container">
+      <div class="menu-top-container">
+        <div class="menu-title">5765개</div>
+        <div class="menu-items">
+          <div class="menu-item">지정시간 방송권</div>
+          <div class="menu-item">요모의 보은</div>
+          <div class="menu-item">술먹방(협의)</div>
+          <div class="menu-item">개인카톡</div>
+          <div class="menu-item">뽑기 66장</div>
+          <div class="menu-item">인스타 맞팔</div>
+        </div>
+      </div>
+      <div class="menu-bottom-container">
+        <div class="menu-divider-row">
+          <div class="menu-divider-circle">
+            <div class="menu-divider-circle-text">열혈</div>
+          </div>
+          <div class="menu-divider"></div>
+        </div>
+        <div class="menu-footer-items">
+          <div class="menu-footer-item">랜선 영화 같이보기</div>
+          <div class="menu-footer-item">요모의 손맛 전송</div>
+        </div>
+      </div>
+    </div>
+    <div class="menu-container">
+      <div class="menu-top-container">
+        <div class="menu-title">12465개</div>
+        <div class="menu-items">
+          <div class="menu-item">식데권 1장</div>
+          <div class="menu-item">뽑기 130장</div>
+          <div class="menu-item">요모의 보물</div>
+          <div class="menu-item">12시간 노방종</div>
+          <div class="menu-item">하루 일상 브이로그</div>
+          <div class="menu-item">역팬 1004개</div>
+          <div class="menu-item">휴방일 소환권</div>
+          <div class="menu-item">바로 방종권</div>
+        </div>
+      </div>
+      <div class="menu-bottom-container">
+        <div class="menu-divider-row">
+          <div class="menu-divider-circle">
+            <div class="menu-divider-circle-text">열혈</div>
+          </div>
+          <div class="menu-divider"></div>
+        </div>
+        <div class="menu-footer-items">
+          <div class="menu-footer-item">개인전화번호</div>
+          <div class="menu-footer-item">24시간 노방종</div>
+          <div class="menu-footer-item">바로 술먹방</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
