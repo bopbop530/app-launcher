@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>요모 별풍선 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<!--
+  ==================================================================
+  요모 별풍선 계산기 (donation-calc.html)   VERSION 기록
+  ------------------------------------------------------------------
+  v2.3.3  2026-07-21  UX 리뷰 반영
+    - 번들/폴백 빈 상태에 맥락 메시지 (4330↑ 기부는 2종 조합 불가)
+    - 등가표 ×0.0개분 → "<0.1개분" (극소 기부 노이즈 제거)
+    - 등가표 초록 whole 강조는 1개분 이상일 때만
+  v2.3.2  2026-07-21  코드 리뷰 수정 2
+    - 소수점 키 제거 (별풍선은 정수) — 키보드/직접입력 소수도 차단
+    - AC(전체 클리어) 시 추천 표도 숨김/초기화 (대기 상태로 복귀)
+  v2.3.1  2026-07-21  코드 리뷰 수정
+    - What-If 부족(음수 손실%)이 초록으로 오인되던 색 → 중립 회색
+    - 죽은 CSS 정리 (#amount 미디어쿼리 → .display .cur)
+  v2.3.0  2026-07-20  피드백 반영 2
+    - 계산기 디스플레이 클릭해서 직접 숫자 입력 가능 (input)
+    - 등가표: 저가→고가 순 정렬
+    - 커스텀 SVG 아이콘 세트 (이모지 대체, 핑크 톤)
+  v2.2.0  2026-07-20  피드백 반영
+    - 번들: 서로 다른 2종만 (X×2 는 단일이 담당)
+    - 통합폴백: 손실 10% 미만 제외 (10%부터 시작)
+    - What-If 전면 재설계: 왼쪽 칼럼으로 이동, 2열 컴팩트 카드
+    - 빠른입력 프리셋 제거 (MVP)
+  v2.1.1  2026-07-20  좌우 2분할 레이아웃
+    - 왼쪽=계산기, 오른쪽=추천 2×2 (등가/단일 · 번들/폴백)
+    - What-If은 하단 전체폭 가로바 (7항목 한 줄에)
+    - 계산기+2×2 코어가 880 팝업 안에 들어오도록 밀도 조정
+  v2.1.0  2026-07-20  진짜 계산기 + 추천 결합
+    - 입력을 숫자패드 계산기로 교체 (클릭/키보드 둘 다)
+    - 연산자(+ − × ÷)로 별풍선 차액 계산 (예: 3000 − 2544)
+    - = / Enter → 계산 결과값으로 추천 4패널 갱신
+    - 프리셋은 현재 입력칸을 채우기만 (자동계산 X)
+  v2.0.0  2026-07-20  스펙대로 전면 재작성
+    - 하드코딩 레전드 + 프리셋 (백엔드/동기화/CRUD 없음)
+    - 입력: 수동 정수 입력 + 프리셋(채우기만, 자동계산 X)
+      계산은 Enter 또는 = 버튼에서만. 로드 시 자동 포커스.
+    - 결과 4패널(첫 계산 전 숨김): 등가표 / 단일 / 번들 / 통합 폴백
+    - What-If(항상 표시): 직접 수량 골라 총비용·손실% 실시간
+    - 손실% = (총비용 − 입력값) ÷ 입력값 × 100
+    - 동점 규칙: 손실% → 총비용 낮은 순 → 항목 수 적은 순
+    - 손실%에 초록→빨강 그라데이션, 송리스트 핑크 오로라 톤
+  (구버전 v1.x 키패드형은 _backups 에 보관)
+  ==================================================================
+-->
+<style>
+  /* ============ 여기 값만 고치면 됩니다 (데이터) ============ */
+  /* 실제 값/아이콘/프리셋은 아래 <script> 상단 CONFIG 에서 편집 */
+  :root{
+    --bg:#fff0f5;
+    --card:#ffffff;
+    --ink:#c71585;          /* 진한 제목 */
+    --ink2:#ff69b4;          /* 보조 */
+    --muted:#db7093;         /* 흐린 */
+    --pop:#ff1493;           /* 강조 */
+    --accent:#ff5fa2;        /* 포커스/선택 강조 (핑크) */
+    --line:#ffd3e2;
+    --line2:#ffb6c1;
+    --shadow:rgba(255,105,180,.22);
+    --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Pretendard","Quicksand","Noto Sans KR",system-ui,sans-serif;
+    color:var(--ink);
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(circle at 6% 4%, #ffe4e1 0%, transparent 26%),
+      radial-gradient(circle at 96% 96%, #e6e6fa 0%, transparent 26%),
+      radial-gradient(circle at 80% 8%, #fff4cc 0%, transparent 22%);
+    background-attachment:fixed;
+    min-height:100vh;
+    padding:0 20px 16px;
+  }
+
+  /* ---------- 헤더 ---------- */
+  .head{
+    max-width:1280px;margin:0 auto;
+    display:flex;align-items:center;gap:12px;
+    padding:20px 4px 10px;
+  }
+  .head .star{
+    width:44px;height:44px;flex:none;
+    filter:drop-shadow(0 4px 8px rgba(255,105,180,.4));
+  }
+  .head h1{font-size:1.7rem;font-weight:800;color:var(--pop);letter-spacing:-1px}
+  .head p{font-size:.85rem;color:var(--muted);font-weight:600;margin-top:2px}
+
+  /* ---------- 입력 스트립 (계산기) ---------- */
+  .inputbar{
+    background:rgba(255,255,255,.82);
+    backdrop-filter:blur(10px);
+    border:2px solid var(--line2);
+    border-radius:24px;
+    box-shadow:0 10px 30px var(--shadow);
+    padding:16px 18px;
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .console{width:100%}
+  .display{
+    border-radius:18px;
+    background:linear-gradient(160deg,#fff,#fff4fa);
+    border:2px solid var(--line);
+    padding:12px 16px 10px;text-align:right;
+    min-height:96px;display:flex;flex-direction:column;justify-content:flex-end;
+    cursor:text;transition:border-color .15s ease,box-shadow .15s ease;
+  }
+  .display:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,20,147,.12)}
+  .display .expr{font-size:.9rem;font-weight:700;color:var(--muted);min-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl}
+  .display .cur{
+    width:100%;border:none;background:transparent;outline:none;
+    font-family:inherit;padding:0;text-align:right;
+    font-size:2.6rem;font-weight:800;color:var(--pop);letter-spacing:-1px;line-height:1.12;
+  }
+  .display .cur.small{font-size:1.9rem}
+  .display .cur::selection{background:#ffd0e4}
+  .display .calchint{font-size:.74rem;font-weight:700;color:#e8536b;min-height:14px;text-align:right;margin-top:3px;direction:ltr}
+  .pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .key{
+    font-family:inherit;font-size:1.35rem;font-weight:800;
+    border:2px solid var(--line);border-radius:16px;height:48px;cursor:pointer;
+    color:var(--ink);background:#fff;
+    box-shadow:0 3px 8px rgba(255,105,180,.12);
+    transition:transform .1s ease,background .12s ease,filter .12s ease;
+    user-select:none;
+  }
+  .key:hover{background:#fff6fb}
+  .key:active,.key.flash{transform:scale(.94);background:#ffe4ef}
+  .key.op{color:var(--pop);border-color:var(--line2);background:#fff6fb;font-size:1.5rem}
+  .key.util{color:var(--ink2);border-color:var(--line2);background:#fff0f5;font-size:1.05rem}
+  .key.eq{color:#fff;border:none;background:linear-gradient(135deg,#ff69b4,#ff1493);box-shadow:0 5px 14px rgba(255,20,147,.4);font-size:1.6rem}
+  .key.wide{grid-column:span 2}
+
+  .side{width:100%;display:flex;flex-direction:column;gap:12px}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .presets .lbl{font-size:.8rem;font-weight:700;color:var(--muted);width:100%;margin-bottom:2px}
+  .preset{
+    font-family:inherit;font-size:.95rem;font-weight:700;
+    color:var(--ink);background:#fff;
+    border:2px solid var(--line2);border-radius:50px;
+    padding:7px 16px;cursor:pointer;
+    transition:transform .12s ease,background .15s ease,color .15s ease,box-shadow .15s ease;
+  }
+  .preset:hover{transform:translateY(-2px);box-shadow:0 6px 14px var(--shadow)}
+  .preset:active{background:var(--pop);color:#fff;border-color:var(--pop)}
+  .tip{font-size:.82rem;font-weight:600;color:var(--muted);line-height:1.6;background:#fff6fb;border:1.5px solid var(--line);border-radius:14px;padding:10px 13px}
+  .tip b{color:var(--pop)}
+
+  /* ---------- 좌우 2분할 레이아웃 ---------- */
+  .layout{
+    max-width:1440px;margin:0 auto;
+    display:grid;grid-template-columns:minmax(360px,410px) 1fr;
+    gap:20px;align-items:start;
+  }
+  .leftcol{position:sticky;top:16px;display:flex;flex-direction:column;gap:16px}
+  .rightcol{min-width:0}
+  @media(max-width:1040px){
+    .layout{grid-template-columns:1fr}
+    .leftcol{position:static}
+  }
+
+  /* 대기 상태 */
+  .idle{
+    text-align:center;padding:56px 20px;
+    color:var(--muted);
+    background:rgba(255,255,255,.55);
+    border:2px dashed var(--line2);border-radius:var(--radius);
+  }
+  .idle .big{font-size:3rem;margin-bottom:12px;filter:drop-shadow(0 4px 8px rgba(255,105,180,.3))}
+  .idle h2{font-size:1.25rem;font-weight:800;color:var(--ink2);margin-bottom:6px}
+  .idle p{font-size:.95rem;font-weight:600}
+  .idle b{color:var(--pop)}
+
+  /* 패널 2×2 그리드 */
+  .panels{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  @media(max-width:560px){.panels{grid-template-columns:1fr}}
+  .panel{
+    background:var(--card);
+    border-radius:var(--radius);
+    border:2px solid var(--line);
+    box-shadow:0 8px 22px rgba(230,230,250,.7);
+    padding:14px 15px 6px;
+    display:flex;flex-direction:column;
+  }
+  .panel > .phead{
+    display:flex;align-items:baseline;gap:8px;
+    margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--line);
+  }
+  .phead .ico{font-size:1.15rem}
+  .phead h3{font-size:1.05rem;font-weight:800;color:var(--pop)}
+  .phead .sub{font-size:.72rem;font-weight:700;color:var(--muted);margin-left:auto;text-align:right;line-height:1.3}
+
+  /* 커스텀 아이콘 */
+  svg.gi{width:19px;height:19px;flex:none;vertical-align:middle;display:inline-block}
+  svg.pi{width:22px;height:22px;flex:none;vertical-align:middle;display:block}
+  .phead .ico,.wihead .ico{display:inline-flex;align-items:center}
+  .ic{display:inline-flex;align-items:center}
+
+  /* 행 */
+  .row{
+    display:flex;align-items:center;gap:10px;
+    padding:7px 4px;border-bottom:1px solid #fdeaf1;
+  }
+  .row:last-child{border-bottom:none}
+  .emptyrow{padding:20px 8px;text-align:center;font-size:.86rem;font-weight:600;color:var(--muted);line-height:1.55}
+  .rank{
+    flex:none;width:22px;height:22px;border-radius:50%;
+    background:#ffe4ef;color:var(--pop);
+    font-size:.72rem;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .rank.top{background:var(--pop);color:#fff}
+  .combo{flex:1;min-width:0}
+  .combo .names{
+    font-size:1rem;font-weight:600;color:#8a4a63;
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;line-height:1.35;
+  }
+  .combo .names .ic{font-size:1.05rem}
+  .combo .names .plus{color:var(--line2);font-weight:800}
+  .combo .names .mul{color:var(--pop);font-weight:800;font-size:.92em}
+  .combo .cost{font-size:.76rem;font-weight:600;color:var(--muted);margin-top:2px}
+  .loss{
+    flex:none;text-align:right;min-width:74px;
+    font-weight:800;font-size:1.32rem;letter-spacing:-.5px;
+    line-height:1;
+  }
+  .loss .pct{display:block}
+  .loss .z{font-size:.66rem;font-weight:700;color:var(--muted);letter-spacing:0}
+
+  /* 등가표 전용 */
+  .eqrow{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid #fdeaf1}
+  .eqrow:last-child{border-bottom:none}
+  .eqrow .nm{flex:1;font-size:1rem;font-weight:600;color:#8a4a63;display:flex;align-items:center;gap:7px}
+  .eqrow .nm .ic{font-size:1.1rem}
+  .eqrow .nm .base{font-size:.72rem;color:var(--muted);font-weight:600}
+  .eqrow .val{font-size:1.5rem;font-weight:800;color:var(--pop);letter-spacing:-.5px}
+  .eqrow .val small{font-size:.8rem;font-weight:700;color:var(--muted);margin-left:2px}
+  .eqrow.whole .val{color:#1eb980}
+
+  /* ---------- What-If (왼쪽 칼럼, 컴팩트) ---------- */
+  .whatif{
+    background:linear-gradient(160deg,#ffffff,#fff6fb);
+    border:2px solid var(--line2);
+    border-radius:var(--radius);
+    box-shadow:0 10px 26px var(--shadow);
+    padding:14px 16px;
+  }
+  .wihead{display:flex;align-items:baseline;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--line)}
+  .wihead .ico{font-size:1.1rem}
+  .wihead h3{font-size:1.05rem;font-weight:800;color:var(--pop)}
+  .wihead .wisub{font-size:.78rem;font-weight:700;color:var(--muted);margin-left:auto}
+  .wigrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  @media(max-width:1040px){.wigrid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}}
+  .wiitem{
+    display:flex;align-items:center;gap:6px;
+    padding:5px 7px 5px 10px;border-radius:13px;
+    background:#fff;border:1.5px solid var(--line);
+  }
+  .wiitem.on{border-color:var(--accent);background:#fff2f8}
+  .wiitem .nm{flex:1;min-width:0;font-size:.92rem;font-weight:700;color:#8a4a63;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wiitem .nm .ic{font-size:1rem;flex:none}
+  .stepper{display:flex;align-items:center;gap:1px;flex:none}
+  .stepper button{
+    width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line2);
+    background:#fff;color:var(--pop);font-size:1.05rem;font-weight:800;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+    transition:background .12s ease,transform .1s ease;
+  }
+  .stepper button:hover{background:#ffe4ef}
+  .stepper button:active{transform:scale(.88)}
+  .stepper button:disabled{opacity:.4;cursor:default;background:#fff}
+  .stepper button:disabled:hover{background:#fff}
+
+  /* 계산 전 비활성 상태 */
+  .whatif.disabled{opacity:.6}
+  .whatif.disabled .wilossnum{color:var(--muted)!important}
+  .whatif.disabled .wiitem{background:#fff;border-color:var(--line)}
+  .wireset:disabled{opacity:.45;cursor:default}
+  .wireset:disabled:hover{background:#fff;color:var(--muted)}
+  .stepper .q{min-width:20px;text-align:center;font-size:1rem;font-weight:800;color:var(--ink)}
+  .stepper .q.zero{color:#e6b8cd}
+
+  .wiresult{display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:12px;border-top:2px solid var(--line)}
+  .wibig{flex:none;display:flex;flex-direction:column;align-items:center;line-height:1;min-width:84px}
+  .wilossnum{font-size:2rem;font-weight:800;letter-spacing:-1px;color:var(--muted)}
+  .wilosslbl{font-size:.64rem;font-weight:700;color:var(--muted);margin-top:3px}
+  .wistat{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .wimeta{display:flex;gap:14px;font-size:.8rem;font-weight:700;color:var(--muted)}
+  .wimeta b{color:var(--ink);font-size:.95rem;margin-left:3px}
+  .status{font-size:.82rem;font-weight:800;padding:6px 10px;border-radius:11px;text-align:center}
+  .status.ok{background:#e3f9ef;color:#1aa06f}
+  .status.short{background:#fff0f0;color:#e8536b}
+  .status.idle{background:#fbeef4;color:var(--muted)}
+  .wireset{
+    flex:none;align-self:stretch;font-family:inherit;
+    font-size:.76rem;font-weight:700;color:var(--muted);
+    background:#fff;border:1.5px solid var(--line2);border-radius:12px;
+    padding:0 12px;cursor:pointer;transition:background .12s ease;
+  }
+  .wireset:hover{background:#fff0f5;color:var(--pop)}
+
+  .hidden{display:none !important}
+
+  @media(max-width:520px){
+    .head h1{font-size:1.4rem}
+    .display .cur{font-size:2.1rem}
+  }
+</style>
+</head>
+<body>
+  <div class="head">
+    <svg class="star" viewBox="0 0 48 48" aria-hidden="true">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffd1e8"/><stop offset="1" stop-color="#ff69b4"/>
+        </linearGradient>
+      </defs>
+      <path d="M24 3 L29.6 16.6 L44 17.8 L33 27.3 L36.4 41.4 L24 33.6 L11.6 41.4 L15 27.3 L4 17.8 L18.4 16.6 Z"
+            fill="url(#sg)" stroke="#ff1493" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M24 9 L27.5 17.6 L36 18.3 L29.5 24 L31 32 L24 27.6 Z" fill="#fff" opacity=".55"/>
+    </svg>
+    <div>
+      <h1>요모 별풍선 계산기</h1>
+      <p>별풍선 차액 계산 + 손실% 최소 추천 · 키보드/버튼 둘 다</p>
+    </div>
+  </div>
+
+  <div class="layout">
+  <!-- 왼쪽: 내가 조작하는 것 (계산기 + What-If) -->
+  <div class="leftcol">
+  <!-- 입력 스트립 (계산기) -->
+  <div class="inputbar">
+    <div class="console">
+      <div class="display" id="display">
+        <div class="expr" id="expr">&nbsp;</div>
+        <input class="cur" id="cur" type="text" inputmode="numeric" value="0" spellcheck="false" autocomplete="off" aria-label="계산기 값 (직접 입력 가능)">
+        <div class="calchint" id="calcHint"></div>
+      </div>
+      <div class="pad" id="pad">
+        <button class="key util wide" data-k="ac">AC</button>
+        <button class="key util" data-k="back">⌫</button>
+        <button class="key op" data-k="/">÷</button>
+
+        <button class="key" data-k="7">7</button>
+        <button class="key" data-k="8">8</button>
+        <button class="key" data-k="9">9</button>
+        <button class="key op" data-k="*">×</button>
+
+        <button class="key" data-k="4">4</button>
+        <button class="key" data-k="5">5</button>
+        <button class="key" data-k="6">6</button>
+        <button class="key op" data-k="-">−</button>
+
+        <button class="key" data-k="1">1</button>
+        <button class="key" data-k="2">2</button>
+        <button class="key" data-k="3">3</button>
+        <button class="key op" data-k="+">+</button>
+
+        <button class="key wide" data-k="0">0</button>
+        <button class="key eq wide" data-k="=">=</button>
+      </div>
+    </div>
+  </div><!-- /inputbar -->
+
+    <!-- What-If (항상 표시) -->
+    <div class="whatif" id="whatif">
+      <div class="wihead">
+        <span class="ico"><svg class="pi" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M5 12h14M5 17h14" stroke="#e9bccf" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="7" r="2.5" fill="#fff" stroke="#d9709a" stroke-width="1.7"/><circle cx="15" cy="12" r="2.5" fill="#fff" stroke="#d9709a" stroke-width="1.7"/><circle cx="8" cy="17" r="2.5" fill="#fff" stroke="#d9709a" stroke-width="1.7"/></svg></span><h3>What-If</h3>
+        <span class="wisub" id="wiTarget">목표 —</span>
+      </div>
+      <div class="wigrid" id="wiList"></div>
+      <div class="wiresult">
+        <div class="wibig"><span class="wilossnum" id="wiLoss">—</span><span class="wilosslbl">손실%</span></div>
+        <div class="wistat">
+          <div class="wimeta"><span>총 <b id="wiCost">0</b></span><span>개수 <b id="wiCount">0</b></span></div>
+          <div class="status idle" id="wiStatus">먼저 계산하세요</div>
+        </div>
+        <button class="wireset" id="wiReset">초기화</button>
+      </div>
+    </div>
+
+  </div><!-- /leftcol -->
+
+  <!-- 오른쪽: 시스템이 알려주는 것 (추천 4패널) -->
+  <div class="rightcol">
+    <!-- 대기 상태 -->
+    <div class="idle" id="idle">
+      <div class="big">🎀</div>
+      <h2>별풍선 개수를 입력하세요</h2>
+      <p>숫자를 넣고 <b>Enter</b> 또는 <b>=</b> 를 누르면 추천이 나와요</p>
+    </div>
+
+    <!-- 결과 4패널 -->
+    <div class="panels hidden" id="panels">
+      <div class="panel" id="pEquiv">
+        <div class="phead"><span class="ico"><svg class="pi" viewBox="0 0 24 24" fill="none"><path d="M12 4v15M7.5 20h9" stroke="#d9709a" stroke-width="1.8" stroke-linecap="round"/><path d="M4.6 7.5h14.8M4.6 7.5l-2.1 4.4a2.3 2.3 0 0 0 4.2 0zM19.4 7.5l-2.1 4.4a2.3 2.3 0 0 0 4.2 0z" stroke="#d9709a" stroke-width="1.6" fill="#ffe3ef" stroke-linejoin="round"/><circle cx="12" cy="4.6" r="1.7" fill="#ff7db0" stroke="#d9709a" stroke-width="1"/></svg></span><h3>등가표</h3><span class="sub">항목별 몇 개분<br>(저가→고가 순)</span></div>
+        <div class="pbody" id="bEquiv"></div>
+      </div>
+      <div class="panel" id="pSingle">
+        <div class="phead"><span class="ico"><svg class="pi" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><path d="M12 7l1.55 3.1 3.45.5-2.5 2.4.6 3.4L12 16.3 8.9 16.4l.6-3.4-2.5-2.4 3.45-.5z" fill="#ff7db0" stroke="#d9709a" stroke-width="1" stroke-linejoin="round"/></svg></span><h3>단일 항목</h3><span class="sub">한 종류만<br>손실% 낮은 순</span></div>
+        <div class="pbody" id="bSingle"></div>
+      </div>
+      <div class="panel" id="pBundle">
+        <div class="phead"><span class="ico"><svg class="pi" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="12" r="6" fill="#ffd0e4" stroke="#d9709a" stroke-width="1.7"/><circle cx="15" cy="12" r="6" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><circle cx="9" cy="12" r="1.6" fill="#ff7db0"/><circle cx="15" cy="12" r="1.6" fill="#ff7db0"/></svg></span><h3>번들 (2종)</h3><span class="sub">서로 다른 2개<br>손실% 낮은 순</span></div>
+        <div class="pbody" id="bBundle"></div>
+      </div>
+      <div class="panel" id="pCombined">
+        <div class="phead"><span class="ico"><svg class="pi" viewBox="0 0 24 24" fill="none"><path d="M4 20h4v-4h4v-4h4v-4h4" stroke="#d9709a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="8" r="1.9" fill="#ff7db0" stroke="#d9709a" stroke-width="1"/></svg></span><h3>통합 폴백</h3><span class="sub">손실 10%+ 폴백<br>거절 시 차례로</span></div>
+        <div class="pbody" id="bCombined"></div>
+      </div>
+    </div>
+
+  </div><!-- /rightcol -->
+  </div><!-- /layout -->
+
+<script>
+  /* =========================================================
+     CONFIG — 여기 값만 실제 값으로 고치면 됩니다
+     - name: 항목 이름 (정수 cost, 소수 금지)
+     - icon: 항목 아이콘 (이모지)
+     - PRESETS: 빠른 입력 버튼 (정수)
+     ========================================================= */
+  var LEGEND = [
+    { name: "간방 룰렛",      cost: 65,   icon: "roulette" },
+    { name: "뽑기",           cost: 100,  icon: "ticket" },
+    { name: "랜덤 시그 룰렛", cost: 109,  icon: "dice" },
+    { name: "노래",           cost: 165,  icon: "music" },
+    { name: "간방",           cost: 486,  icon: "tv1" },
+    { name: "일방",           cost: 1465, icon: "tv2" },
+    { name: "정방",           cost: 2865, icon: "tv3" }
+  ];
+  var PRESETS = [100, 300, 500, 1000, 2000, 3000, 5000];
+
+  /* 아이콘 — 커스텀 SVG. icon 값이 아래 키면 SVG로, 아니면(이모지 등) 그대로 렌더 */
+  var ICONS = {
+    roulette: '<svg class="gi" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="7.5" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><path d="M12 5.5v15M4.5 13h15" stroke="#e58cae" stroke-width="1.3"/><circle cx="12" cy="13" r="2" fill="#ff7db0" stroke="#d9709a" stroke-width="1"/><path d="M12 2l2.2 3.2H9.8z" fill="#ff4f9c"/></svg>',
+    ticket:   '<svg class="gi" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="7" width="19" height="10" rx="2.2" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.6"/><path d="M15 7.4V16.6" stroke="#d9709a" stroke-width="1.2" stroke-dasharray="1.3 1.6"/><circle cx="15" cy="7" r="1" fill="#fff0f5" stroke="#d9709a" stroke-width="1"/><circle cx="15" cy="17" r="1" fill="#fff0f5" stroke="#d9709a" stroke-width="1"/><path d="M8.7 9.6l.8 1.6 1.8.26-1.3 1.26.3 1.78L8.7 13.66 7.1 14.5l.3-1.78-1.3-1.26 1.8-.26z" fill="#ffcf3f" stroke="#e0a91f" stroke-width=".6" stroke-linejoin="round"/></svg>',
+    dice:     '<svg class="gi" viewBox="0 0 24 24" fill="none"><rect x="4.5" y="4.5" width="15" height="15" rx="3.6" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><circle cx="9" cy="9" r="1.5" fill="#e05f96"/><circle cx="15" cy="9" r="1.5" fill="#e05f96"/><circle cx="12" cy="12" r="1.5" fill="#ff4f9c"/><circle cx="9" cy="15" r="1.5" fill="#e05f96"/><circle cx="15" cy="15" r="1.5" fill="#e05f96"/></svg>',
+    music:    '<svg class="gi" viewBox="0 0 24 24" fill="none"><path d="M9 17V6l9-2v11" stroke="#d9709a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="6.6" cy="17.4" rx="2.6" ry="2.2" fill="#ff9dc0" stroke="#d9709a" stroke-width="1.4"/><ellipse cx="15.6" cy="15.4" rx="2.6" ry="2.2" fill="#ff9dc0" stroke="#d9709a" stroke-width="1.4"/></svg>',
+    tv1:      '<svg class="gi" viewBox="0 0 24 24" fill="none"><rect x="3" y="8" width="18" height="11.5" rx="2.4" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><path d="M8.5 21.5h7" stroke="#d9709a" stroke-width="1.6" stroke-linecap="round"/><path d="M12 2.2l1.15 2.33 2.57.37-1.86 1.81.44 2.56L12 8.06 9.7 9.27l.44-2.56-1.86-1.81 2.57-.37z" fill="#ffcf3f" stroke="#e0a91f" stroke-width=".8" stroke-linejoin="round"/></svg>',
+    tv2:      '<svg class="gi" viewBox="0 0 24 24" fill="none"><rect x="3" y="9" width="18" height="11" rx="2.4" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><path d="M8.5 22h7" stroke="#d9709a" stroke-width="1.6" stroke-linecap="round"/><g fill="#ffcf3f" stroke="#e0a91f" stroke-width=".7" stroke-linejoin="round"><path d="M7.4 2.4l.92 1.86 2.04.3-1.48 1.44.35 2.03L7.4 7.11 5.57 8.07l.35-2.03L4.44 4.6l2.04-.3z"/><path d="M16.6 2.4l.92 1.86 2.04.3-1.48 1.44.35 2.03-1.83-.96-1.83.96.35-2.03L13.6 4.6l2.04-.3z"/></g></svg>',
+    tv3:      '<svg class="gi" viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="10" rx="2.4" fill="#ffe3ef" stroke="#d9709a" stroke-width="1.7"/><path d="M8.5 22h7" stroke="#d9709a" stroke-width="1.6" stroke-linecap="round"/><g fill="#ffcf3f" stroke="#e0a91f" stroke-width=".6" stroke-linejoin="round"><path d="M5.6 2.9l.72 1.46 1.6.23-1.16 1.13.27 1.6-1.43-.75-1.43.75.27-1.6L4.28 4.62l1.6-.23z"/><path d="M12 2.2l.8 1.62 1.78.26-1.29 1.26.3 1.78L12 6.36 10.4 7.18l.3-1.78L9.41 4.14l1.78-.26z"/><path d="M18.4 2.9l.72 1.46 1.6.23-1.16 1.13.27 1.6-1.43-.75-1.43.75.27-1.6-1.16-1.13 1.6-.23z"/></g></svg>'
+  };
+  function iconHTML(key) { return ICONS[key] || key; }
+
+  var TOP_N = 5;
+  var FALLBACK_MIN_LOSS = 10;   // 통합폴백: 손실 10% 미만은 제외 (그건 단일/번들이 담당)
+
+  /* ============ 유틸 ============ */
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (n) { return Math.round(n).toLocaleString("ko-KR"); };
+  var lossOf = function (total, V) { return (total - V) / V * 100; };
+
+  /* 손실% → 색 (0% 초록 → 높을수록 빨강) */
+  function lossColor(loss) {
+    var t = Math.max(0, Math.min(1, loss / 25));   // 0~25%+ 구간
+    var hue = 150 - 150 * t;                        // 150(초록) → 0(빨강)
+    return "hsl(" + hue.toFixed(0) + ",72%,44%)";
+  }
+
+  /* 정렬 비교자: 손실%(=총비용) → 총비용 → 항목 수 */
+  function cmp(a, b) {
+    if (a.total !== b.total) return a.total - b.total;   // 손실%는 총비용에 단조 → 같은 기준
+    return a.count - b.count;
+  }
+
+  /* 조합 서명 (중복 제거용) */
+  function sig(combo) {
+    return combo.parts.map(function (p) { return p.idx + "x" + p.qty; })
+                      .sort().join("|");
+  }
+
+  /* 조합 → {parts:[{idx,qty}], total, count, loss} */
+  function makeCombo(parts, V) {
+    var total = 0, count = 0;
+    parts.forEach(function (p) { total += LEGEND[p.idx].cost * p.qty; count += p.qty; });
+    return { parts: parts, total: total, count: count, loss: lossOf(total, V) };
+  }
+
+  /* ============ 계산 로직 ============ */
+
+  // 1) 등가표: value ÷ cost, 소수1 반올림, 정수에 가까운 순
+  function calcEquivalence(V) {
+    return LEGEND.map(function (it, idx) {
+      var ratio = V / it.cost;
+      var rounded = Math.round(ratio * 10) / 10;
+      var dist = Math.abs(ratio - Math.round(ratio));  // 정수와의 거리(원시값 기준)
+      return { idx: idx, ratio: rounded, dist: dist, whole: dist < 0.05 && ratio >= 0.95 };
+    }).sort(function (a, b) {
+      return LEGEND[a.idx].cost - LEGEND[b.idx].cost;   // 저가 → 고가 순
+    });
+  }
+
+  // 2) 단일: 한 종류, 최소 정수 수량으로 meet/exceed, 손실% 낮은 순 top5
+  function calcSingle(V) {
+    var list = LEGEND.map(function (it, idx) {
+      var q = Math.ceil(V / it.cost);
+      return makeCombo([{ idx: idx, qty: q }], V);
+    });
+    list.sort(cmp);
+    return list;   // 전체 정렬 목록 (표시는 runRecommendations에서 top5 슬라이스)
+  }
+
+  // 3) 번들: 서로 다른 2개(1+1)만. 같은 것 2개(X×2)는 단일 항목이 담당하므로 제외.
+  function calcBundle(V) {
+    var list = [];
+    for (var i = 0; i < LEGEND.length; i++) {
+      for (var j = i + 1; j < LEGEND.length; j++) {
+        var c = makeCombo([{ idx: i, qty: 1 }, { idx: j, qty: 1 }], V);
+        if (c.total >= V) list.push(c);
+      }
+    }
+    list.sort(cmp);
+    return list;   // 전체 정렬 목록
+  }
+
+  // 4) 통합 폴백: 단일(≤2개) + 번들 통합, 손실 10%+ 만, 중복 제거, 손실% 낮은 순 top5
+  function calcCombined(single, bundle, V) {
+    var pool = [];
+    single.forEach(function (c) { if (c.count <= 2 && c.loss >= FALLBACK_MIN_LOSS) pool.push(c); });
+    bundle.forEach(function (c) { if (c.loss >= FALLBACK_MIN_LOSS) pool.push(c); });
+
+    var seen = {}, out = [];
+    pool.sort(cmp);
+    pool.forEach(function (c) {
+      var s = sig(c);
+      if (!seen[s]) { seen[s] = 1; out.push(c); }
+    });
+    return out.slice(0, TOP_N);
+  }
+
+  /* ============ 렌더 ============ */
+
+  function comboNamesHTML(combo) {
+    return combo.parts.map(function (p) {
+      var it = LEGEND[p.idx];
+      var q = p.qty > 1 ? ' <span class="mul">×' + p.qty + '</span>' : '';
+      return '<span class="ic">' + iconHTML(it.icon) + '</span>' + escapeHtml(it.name) + q;
+    }).join(' <span class="plus">+</span> ');
+  }
+
+  function renderOffers(container, rows, emptyMsg) {
+    if (!rows.length) { container.innerHTML = '<div class="emptyrow">' + (emptyMsg || "해당 없음") + '</div>'; return; }
+    container.innerHTML = rows.map(function (c, i) {
+      var col = lossColor(c.loss);
+      return '<div class="row">' +
+        '<span class="rank' + (i === 0 ? ' top' : '') + '">' + (i + 1) + '</span>' +
+        '<span class="combo">' +
+          '<span class="names">' + comboNamesHTML(c) + '</span>' +
+          '<span class="cost">' + fmt(c.total) + ' 별풍선 · ' + c.count + '개</span>' +
+        '</span>' +
+        '<span class="loss" style="color:' + col + '">' +
+          '<span class="pct">' + c.loss.toFixed(1) + '%</span>' +
+          '<span class="z">손실</span>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderEquivalence(container, rows) {
+    container.innerHTML = rows.map(function (r) {
+      var it = LEGEND[r.idx];
+      return '<div class="eqrow' + (r.whole ? ' whole' : '') + '">' +
+        '<span class="nm"><span class="ic">' + iconHTML(it.icon) + '</span>' +
+          escapeHtml(it.name) + ' <span class="base">(' + fmt(it.cost) + ')</span></span>' +
+        '<span class="val">' + (r.ratio < 0.05 ? '&lt;0.1<small>개분</small>' : '×' + r.ratio.toFixed(1) + '<small>개분</small>') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  /* ============ 상태 & 흐름 ============ */
+  var currentV = null;
+  var wiQty = LEGEND.map(function () { return 0; });   // What-If 수량 (계산해도 유지)
+
+  function runRecommendations(V) {
+    currentV = V;
+
+    var eq = calcEquivalence(V);
+    var single = calcSingle(V);
+    var bundle = calcBundle(V);
+    var combined = calcCombined(single, bundle, V);
+
+    renderEquivalence($("bEquiv"), eq);
+    renderOffers($("bSingle"), single.slice(0, TOP_N));
+    renderOffers($("bBundle"), bundle.slice(0, TOP_N), "2종 조합으론 모자라요.<br>단일 항목이나 폴백을 보세요.");
+    renderOffers($("bCombined"), combined, "폴백이 필요 없어요.<br>위 추천이 이미 근접해요.");
+
+    $("idle").classList.add("hidden");
+    $("panels").classList.remove("hidden");
+
+    renderWhatIf();
+  }
+
+  /* 계산기 전체 클리어(AC) 시 추천 표도 초기화 → 대기 상태로 */
+  function resetResults() {
+    currentV = null;
+    wiQty = LEGEND.map(function () { return 0; });
+    $("panels").classList.add("hidden");
+    $("idle").classList.remove("hidden");
+    renderWhatIf();   // What-If 다시 비활성
+  }
+
+  /* ---------- What-If ---------- */
+  function buildWhatIfList() {
+    $("wiList").innerHTML = LEGEND.map(function (it, idx) {
+      return '<div class="wiitem" data-i="' + idx + '">' +
+        '<span class="nm"><span class="ic">' + iconHTML(it.icon) + '</span>' +
+          escapeHtml(it.name) + '</span>' +
+        '<span class="stepper">' +
+          '<button data-d="-1" aria-label="빼기">−</button>' +
+          '<span class="q zero" data-q="' + idx + '">0</span>' +
+          '<button data-d="1" aria-label="더하기">+</button>' +
+        '</span>' +
+      '</div>';
+    }).join('');
+
+    $("wiList").addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-d]");
+      if (!btn) return;
+      if (currentV === null) return;   // 계산 값 없으면 비활성
+      var wrap = btn.closest(".wiitem");
+      var idx = +wrap.dataset.i;
+      wiQty[idx] = Math.max(0, wiQty[idx] + (+btn.dataset.d));
+      renderWhatIf();
+    });
+  }
+
+  function renderWhatIf() {
+    var total = 0, count = 0;
+    wiQty.forEach(function (q, idx) {
+      total += LEGEND[idx].cost * q;
+      count += q;
+      var qEl = $("wiList").querySelector('[data-q="' + idx + '"]');
+      if (qEl) {
+        qEl.textContent = q;
+        qEl.classList.toggle("zero", q === 0);
+        qEl.closest(".wiitem").classList.toggle("on", q > 0);
+      }
+    });
+
+    $("wiCost").textContent = fmt(total);
+    $("wiCount").textContent = count;
+
+    // 계산 값이 있기 전엔 What-If 비활성
+    var enabled = currentV !== null;
+    $("whatif").classList.toggle("disabled", !enabled);
+    var wibtns = $("wiList").querySelectorAll("button[data-d]");
+    for (var wb = 0; wb < wibtns.length; wb++) wibtns[wb].disabled = !enabled;
+    $("wiReset").disabled = !enabled;
+
+    var lossEl = $("wiLoss"), statusEl = $("wiStatus"), tgtEl = $("wiTarget");
+
+    if (currentV === null) {
+      tgtEl.textContent = "목표 —";
+      lossEl.textContent = "—";
+      lossEl.style.color = "var(--muted)";
+      statusEl.className = "status idle";
+      statusEl.textContent = "먼저 계산하세요";
+      return;
+    }
+
+    tgtEl.textContent = "목표 " + fmt(currentV);
+
+    if (count === 0) {
+      lossEl.textContent = "—";
+      lossEl.style.color = "var(--muted)";
+      statusEl.className = "status idle";
+      statusEl.textContent = "항목을 골라보세요";
+      return;
+    }
+
+    var loss = lossOf(total, currentV);
+    var meet = total >= currentV;
+    lossEl.textContent = loss.toFixed(1) + "%";
+    // 충족일 때만 손실% 색(초록→빨강); 부족이면 음수라 초록으로 오인되므로 회색 중립
+    lossEl.style.color = meet ? lossColor(loss) : "var(--muted)";
+
+    if (meet) {
+      statusEl.className = "status ok";
+      statusEl.textContent = "✓ 충족 (초과 " + fmt(total - currentV) + ")";
+    } else {
+      statusEl.className = "status short";
+      statusEl.textContent = "✗ 부족 (" + fmt(currentV - total) + " 모자람)";
+    }
+  }
+
+  /* ---------- 프리셋 ---------- */
+  function buildPresets() {
+    var box = $("presets");
+    PRESETS.forEach(function (v) {
+      var b = document.createElement("button");
+      b.className = "preset";
+      b.textContent = fmt(v);
+      b.addEventListener("click", function () {
+        setEntry(v);   // 채우기만, 자동 계산 X
+      });
+      box.appendChild(b);
+    });
+  }
+
+  /* ---------- 계산기 엔진 (클릭 + 키보드) ---------- */
+  var cur = "0", acc = null, op = null, fresh = true;
+  var OPSIGN = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+  var curEl = $("cur"), exprEl = $("expr"), hintEl = $("calcHint");
+
+  function curNum() { return Number(cur); }
+  function trimNum(n) { return isFinite(n) ? Math.round(n * 1e10) / 1e10 : n; }
+  function showNum(n) {
+    var neg = n < 0, a = Math.abs(n);
+    var s = Number.isInteger(a) ? fmt(a) : a.toString();
+    return (neg ? "−" : "") + s;
+  }
+  function setHint(msg, bad) { hintEl.textContent = msg || ""; hintEl.style.color = bad ? "#e8536b" : "var(--muted)"; }
+  function paintDisplay() {
+    var n = curNum(), txt;
+    if (cur === "-") txt = "−";
+    else if (Number.isInteger(n)) txt = showNum(n);
+    else txt = cur.replace(/^(-?)(\d+)/, function (m, s, ints) { return (s ? "−" : "") + fmt(Number(ints)); });
+    curEl.value = txt;
+    curEl.classList.toggle("small", txt.length > 11);
+    exprEl.innerHTML = (acc !== null && op) ? (showNum(acc) + " " + OPSIGN[op]) : "&nbsp;";
+  }
+
+  function inputDigit(d) {
+    setHint("");
+    if (fresh) { cur = d; fresh = false; }
+    else if (cur === "0") { cur = d; }
+    else if (cur.replace(/[-.]/g, "").length < 12) { cur += d; }
+    paintDisplay();
+  }
+  function setEntry(v) {   // 프리셋: 현재 입력칸을 통째로 채움
+    setHint("");
+    cur = String(v); fresh = false;
+    paintDisplay();
+  }
+  function applyOp(a, b, o) {
+    if (o === "+") return a + b;
+    if (o === "-") return a - b;
+    if (o === "*") return a * b;
+    if (o === "/") return b === 0 ? NaN : a / b;
+    return b;
+  }
+  function setOp(o) {
+    setHint("");
+    if (acc !== null && op && !fresh) {
+      var r = applyOp(acc, curNum(), op);
+      if (!isFinite(r)) { setHint("0으로 나눌 수 없어요", true); clearAll(); return; }
+      acc = trimNum(r); cur = String(acc);
+    } else { acc = curNum(); }
+    op = o; fresh = true;
+    paintDisplay();
+  }
+  function equals() {
+    if (acc !== null && op) {
+      var raw = applyOp(acc, curNum(), op);
+      if (!isFinite(raw)) { setHint("0으로 나눌 수 없어요", true); clearAll(); return; }
+      cur = String(trimNum(raw)); acc = null; op = null; fresh = true;
+      paintDisplay();
+    }
+    var V = Math.floor(curNum());
+    if (!isFinite(V) || V <= 0) { setHint("0보다 큰 값이 필요해요", true); return; }
+    setHint("");
+    runRecommendations(V);
+  }
+  function clearAll() { cur = "0"; acc = null; op = null; fresh = true; paintDisplay(); }  /* 힌트는 유지 (÷0 메시지 보존) */
+  function backspace() {
+    setHint("");
+    if (fresh) return;
+    cur = cur.length > 1 ? cur.slice(0, -1) : "0";
+    if (cur === "-") cur = "0";
+    if (cur === "0") fresh = true;
+    paintDisplay();
+  }
+  function press(k) {
+    if (k >= "0" && k <= "9") inputDigit(k);
+    else if (k === "+" || k === "-" || k === "*" || k === "/") setOp(k);
+    else if (k === "=") equals();
+    else if (k === "ac") { clearAll(); setHint(""); resetResults(); }   /* AC: 힌트·추천표 모두 초기화 */
+    else if (k === "back") backspace();
+  }
+  function flash(k) {
+    var map = { "Enter": "=", "Backspace": "back", "Escape": "ac", "Delete": "ac", ",": "." };
+    var sel = map[k] || k;
+    var btn = document.querySelector('.key[data-k="' + (window.CSS && CSS.escape ? CSS.escape(sel) : sel) + '"]');
+    if (!btn) return;
+    btn.classList.add("flash");
+    setTimeout(function () { btn.classList.remove("flash"); }, 110);
+  }
+
+  $("pad").addEventListener("click", function (e) {
+    var btn = e.target.closest(".key");
+    if (!btn) return;
+    press(btn.dataset.k);
+    btn.blur();   // 포커스 남으면 Enter가 그 버튼을 재실행 (claw-machine 교훈)
+  });
+
+  /* 디스플레이 직접 편집 (클릭해서 입력창처럼) */
+  $("display").addEventListener("mousedown", function (e) {
+    if (e.target !== curEl) { e.preventDefault(); curEl.focus(); }   // expr/힌트 영역 클릭도 입력창 포커스
+  });
+  curEl.addEventListener("focus", function () { this.select(); });   // 클릭하면 전체 선택 → 바로 새로 타이핑
+  curEl.addEventListener("input", function () {
+    var v = this.value.replace(/[^\d]/g, "");   // 정수만 (별풍선은 소수 없음)
+    this.value = v;
+    cur = (v === "") ? "0" : v;   // 편집 중에는 콤마 없이 그대로
+    fresh = false;
+    setHint("");
+  });
+  curEl.addEventListener("blur", function () {
+    if (cur === "") cur = "0";
+    paintDisplay();   // 편집 끝나면 콤마 포맷으로 복원
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var k = e.key;
+    if (document.activeElement === curEl) {
+      // 직접 편집 중: 숫자/백스페이스/방향키는 입력창이 처리, 연산자·Enter만 가로챔
+      if (k === "Enter" || k === "=") { e.preventDefault(); curEl.blur(); press("="); flash(k); }
+      else if (k === "+" || k === "-" || k === "*" || k === "/") { e.preventDefault(); curEl.blur(); press(k); flash(k); }
+      else if (k === "Escape") { curEl.blur(); press("ac"); flash(k); }
+      return;
+    }
+    if (k >= "0" && k <= "9") press(k);
+    else if (k === "+" || k === "-" || k === "*" || k === "/") press(k);
+    else if (k === "Enter" || k === "=") { e.preventDefault(); press("="); }
+    else if (k === "Backspace") { e.preventDefault(); press("back"); }
+    else if (k === "Escape" || k === "Delete") press("ac");
+    else return;
+    flash(k);
+  });
+  $("wiReset").addEventListener("click", function () {
+    wiQty = LEGEND.map(function () { return 0; });
+    renderWhatIf();
+  });
+
+  /* ---------- 초기화 ---------- */
+  /* buildPresets();  // MVP: 빠른 입력 프리셋 숨김 (원하면 나중에 복구) */
+  buildWhatIfList();
+  renderWhatIf();
+  paintDisplay();
+</script>
+</body>
+</html>
