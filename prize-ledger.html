@@ -54,7 +54,10 @@
     --butter: #FBF0C9;
     --sky: #D3E8FB;
     --ink: #6b4a5a;
-    --ink-soft: #a08190;
+    --ink-soft: #7a6270;   /* 4.8-5.5:1 everywhere (was #a08190, 3.0:1) */
+    --btn-grad-top: #bf4a76;  /* white text 4.7:1 (was --accent #e98bb3, 2.4:1) */
+    --btn-grad-bot: #9d3459;
+    --warn-ink: #4a2c08;      /* 6.1:1 on the #eaa64f chips (white was 2.1:1) */
     --card: #ffffff;
     --line: #f3d9e6;
     --accent: #e98bb3;
@@ -105,7 +108,7 @@
   .toolbtn:active { transform: scale(.96); }
   #syncPill {
     font-size: 12px; font-weight: 700; border-radius: 999px; padding: 6px 12px;
-    background: #f0eef2; color: #948a99; border: 1.5px solid transparent;
+    background: #f0eef2; color: #6b6272; border: 1.5px solid transparent;  /* 5.0:1 (was #948a99, 2.9:1) */
   }
   #syncPill.ok  { background: #e2f5ec; color: #2f8d68; }
   #syncPill.wait{ background: #fbf0c9; color: #9a7d2e; }
@@ -141,7 +144,7 @@
     transition: transform .1s, filter .15s;
   }
   .actBtn:active { transform: scale(.95); }
-  #addBtn { background: linear-gradient(180deg, var(--accent), var(--accent-deep)); box-shadow: 0 5px 14px rgba(194,92,135,.35); }
+  #addBtn { background: linear-gradient(180deg, var(--btn-grad-top), var(--btn-grad-bot)); box-shadow: 0 5px 14px rgba(194,92,135,.35); }
   #delBtn { background: #fff; color: var(--danger-deep); border: 2px solid #f6c9d4; box-shadow: none; }
   #delBtn:hover { background: #fdf0f3; }
 
@@ -152,7 +155,7 @@
     align-items: center; gap: 10px; flex-wrap: wrap;
   }
   #confirmStrip button { border: none; border-radius: 10px; padding: 6px 14px; font-size: 13px; font-weight: 800; }
-  #confirmStrip .yes { background: #eaa64f; color: #fff; }
+  #confirmStrip .yes { background: #eaa64f; color: var(--warn-ink); }
   #confirmStrip .no  { background: #f3e7d8; color: #8a5a20; }
 
   #suggestRow { display: none; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -265,7 +268,7 @@
   .editRow input[type=number] { width: 62px; padding: 4px 6px; border: 1.5px solid #eaa64f; border-radius: 8px; font-weight: 800; }
   .editRow input[type=date] { padding: 3px 6px; border: 1.5px solid #eaa64f; border-radius: 8px; font-size: 12.5px; }
   .editRow label { font-size: 12px; color: #8a5a20; font-weight: 700; }
-  .editRow .sv { background: #eaa64f; color: #fff; border: none; border-radius: 8px; padding: 4px 10px; font-weight: 800; font-size: 12.5px; }
+  .editRow .sv { background: #eaa64f; color: var(--warn-ink); border: none; border-radius: 8px; padding: 4px 10px; font-weight: 800; font-size: 12.5px; }
   .editRow .cx { background: #f3e7d8; color: #8a5a20; border: none; border-radius: 8px; padding: 4px 10px; font-weight: 800; font-size: 12.5px; }
 
   #emptyState {
@@ -347,7 +350,7 @@
   .modal h2 { font-family: "Jua", sans-serif; font-weight: 400; font-size: 21px; margin-bottom: 12px; }
   .modal .mrow { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; flex-wrap: wrap; }
   .mbtn { border: none; border-radius: 12px; padding: 9px 18px; font-size: 14px; font-weight: 800; }
-  .mbtn.pri { background: linear-gradient(180deg, var(--accent), var(--accent-deep)); color: #fff; }
+  .mbtn.pri { background: linear-gradient(180deg, var(--btn-grad-top), var(--btn-grad-bot)); color: #fff; }
   .mbtn.dng { background: var(--danger-deep); color: #fff; }
   .mbtn.gho { background: #f5eaf0; color: var(--ink); }
   .modal textarea {
@@ -381,12 +384,39 @@
   details.guide ol { margin: 10px 0 0 20px; font-size: 13px; line-height: 1.9; }
   details.guide textarea { min-height: 160px; font-family: Consolas, monospace; font-size: 11.5px; margin-top: 8px; }
 
-  #verTag { font-size: 11px; color: #cbb3c0; margin-top: 26px; }
+  #verTag { font-size: 11px; color: var(--ink-soft); margin-top: 26px; }  /* was #cbb3c0, 1.7:1 */
 
   @media (max-width: 640px) {
     .topbar h1 { font-size: 24px; }
     #cardWall { grid-template-columns: 1fr; }
     .actBtn { flex: 1; }
+  }
+
+  /* ===== accessibility (WCAG 2.1 AA) ===== */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  /* several rules set outline:none, leaving keyboard users with no indicator (2.4.7) */
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 3px solid var(--accent-deep);
+    outline-offset: 2px;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-deep);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
   }
 </style>
 </head>
@@ -412,7 +442,7 @@
 
 <div class="panel">
   <div class="ctrlRow">
-    <input id="viewerInput" placeholder="시청자 닉네임" autocomplete="off" spellcheck="false">
+    <input id="viewerInput" placeholder="시청자 닉네임" aria-label="시청자 닉네임" autocomplete="off" spellcheck="false">
     <span id="dateBtn" title="추가할 날짜 (기본: 오늘)">📅 <span id="dateLbl">오늘</span><input type="date" id="datePick"></span>
     <button class="actBtn" id="addBtn">추가</button>
     <button class="actBtn" id="delBtn">삭제</button>
@@ -422,6 +452,7 @@
   <div id="chipRow"></div>
 </div>
 
+<main>
 <div id="summary"></div>
 
 <div id="cardWall"></div>
@@ -435,10 +466,11 @@
   <button id="logToggle">🕰 최근 기록 <span id="logCount"></span></button>
   <div id="logList"></div>
 </div>
+</main>
 
 <div id="verTag"></div>
 
-<div id="toast"><span id="toastMsg"></span><button class="undoBtn" id="toastUndo">되돌리기</button><span class="bar"><i id="toastBar"></i></span></div>
+<div id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button class="undoBtn" id="toastUndo">되돌리기</button><span class="bar"><i id="toastBar"></i></span></div>
 
 <div class="overlay" id="ovl"><div class="modal" id="modalBox"></div></div>
 
@@ -1056,7 +1088,7 @@ function openCatMgr() {
   }).join("");
   openModal(
     "<h2>카테고리 관리</h2>" + rows +
-    '<div style="display:flex;gap:8px;margin-top:14px;"><input type="text" id="ncName" placeholder="새 카테고리 이름">' +
+    '<div style="display:flex;gap:8px;margin-top:14px;"><input type="text" id="ncName" placeholder="새 카테고리 이름" aria-label="새 카테고리 이름">' +
     '<button class="mbtn pri" id="ncAdd">추가</button></div>' +
     '<div class="hint">이름을 고치면 자동 저장돼요. 항목이 남아있는 카테고리는 삭제할 수 없어요.</div>' +
     '<div class="mrow"><button class="mbtn gho" id="cmgClose">닫기</button></div>'
@@ -1107,7 +1139,7 @@ $("importBtn").addEventListener("click", function () {
   openModal(
     "<h2>📋 시트 가져오기</h2>" +
     '<div class="hint">구글 시트에서 표 전체(제목 줄 포함)를 복사해서 아래에 붙여넣으세요.<br>첫 칸은 닉네임, 나머지는 카테고리 열이어야 해요. 모든 수량은 <b>날짜 없음</b>으로 저장돼요.<br><b>기타</b> 열은 제외돼요 — 새 카테고리를 만들어 직접 추가해주세요.</div>' +
-    '<textarea id="impText" placeholder="닉네임&#9;한방&#9;간방&#9;일방 ...&#10;마탱&#9;0&#9;4&#9;2 ..."></textarea>' +
+    '<textarea id="impText" aria-label="붙여넣을 시트 데이터" placeholder="닉네임&#9;한방&#9;간방&#9;일방 ...&#10;마탱&#9;0&#9;4&#9;2 ..."></textarea>' +
     '<div id="impPreview"></div>' +
     '<div class="mrow"><button class="mbtn gho" id="impClose">닫기</button><button class="mbtn pri" id="impParse">미리보기</button></div>'
   );
@@ -1400,7 +1432,7 @@ $("sheetBtn").addEventListener("click", function () {
   openModal(
     "<h2>🔗 구글 시트 연동</h2>" +
     '<div class="hint">Apps Script 웹 앱 URL을 붙여넣으면 변경사항이 자동으로 시트에 저장돼요.</div>' +
-    '<input type="url" id="surl" placeholder="https://script.google.com/macros/s/.../exec" value="' + esc(state.sheetUrl || "") + '" style="margin-top:8px;">' +
+    '<input type="url" id="surl" aria-label="Apps Script 웹앱 URL" placeholder="https://script.google.com/macros/s/.../exec" value="' + esc(state.sheetUrl || "") + '" style="margin-top:8px;">' +
     '<div class="mrow" style="justify-content:flex-start;"><button class="mbtn pri" id="surlSave">저장</button>' +
     '<button class="mbtn gho" id="surlTest">연결 테스트</button><span id="surlMsg" style="font-size:13px;font-weight:700;align-self:center;"></span></div>' +
     '<div id="shareBox" style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);">' +

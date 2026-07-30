@@ -13,13 +13,21 @@
     --butter: #FBF0C9;
     --sky: #D3E8FB;
     --ink: #6b4a5a;        /* soft plum text */
-    --ink-soft: #a081909e;
+    --ink-soft: #7a6270;   /* 5.0:1 on the page bg (was #a081909e = 1.9:1) */
     --card: #ffffff;
     --line: #f3d9e6;
     --accent: #e98bb3;     /* candy pink */
     --accent-deep: #c25c87;
+    --focus: #5c2740;      /* 8.5:1 on every card gradient */
     --win: #5cc4a0;
     --bust: #f08a96;
+  }
+
+  /* visible only to assistive tech */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -95,9 +103,10 @@
   .mode-card.calc  { background: linear-gradient(160deg, var(--mint), var(--sky)); }
   .mode-card .emoji { font-size: 40px; display: block; margin-bottom: 8px; }
   .mode-card .icon { width: 46px; height: 46px; display: block; margin: 0 auto 8px; }
-  .mode-card h2 { font-size: 20px; font-weight: 800; }
+  .mode-card .card-title { display: block; font-size: 20px; font-weight: 800; }
   .mode-card .tag { font-size: 14px; color: var(--accent-deep); margin-top: 6px; font-weight: 600; }
-  .mode-card p { font-size: 13px; color: var(--ink); opacity: .72; margin-top: 10px; line-height: 1.55; }
+  /* .92 keeps this ≥4.7:1 on every card gradient; .72 measured 3.18:1 */
+  .mode-card .card-desc { display: block; font-size: 13px; color: var(--ink); opacity: .92; margin-top: 10px; line-height: 1.55; }
 
   .hint {
     text-align: center;
@@ -105,6 +114,23 @@
     color: var(--ink-soft);
     margin-top: 18px;
     min-height: 18px;
+  }
+
+  /* ---------- accessibility (WCAG 2.1 AA) ---------- */
+  .mode-card:focus-visible,
+  .titles a:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .en-sub { color: var(--ink-soft); font-weight: 500; font-size: 16px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 </style>
 </head>
@@ -173,12 +199,12 @@
       </g>
     </svg>
     <div class="titles">
-      <h1>스트림 런처 <span style="opacity:.5;font-weight:500;font-size:16px">Stream Launcher</span></h1>
-      <p>방송에서 쓸 앱을 골라 실행하세요 · pick an app to launch</p>
+      <h1>스트림 런처 <span class="en-sub" lang="en">Stream Launcher</span></h1>
+      <p>방송에서 쓸 앱을 골라 실행하세요 · <span lang="en">pick an app to launch</span></p>
     </div>
   </div>
 
-  <div class="stage">
+  <main class="stage">
     <div class="clay">
       <div class="modes">
         <button class="mode-card ledger" id="goLedger">
@@ -194,8 +220,8 @@
             <path d="M33.25 27.5 Q29.5 23.5 27.8 26 Q26.9 28 33.25 27.5 Z" fill="#fbd3e0" stroke="#c25c87" stroke-width="1.2"/>
             <path d="M33.25 27.5 Q37 23.5 38.7 26 Q39.6 28 33.25 27.5 Z" fill="#fbd3e0" stroke="#c25c87" stroke-width="1.2"/>
           </svg>
-          <h2>요모 기록부</h2>
-          <p>시청자별 상품 정리 · 추가/삭제 &amp; 시트 자동 백업</p>
+          <span class="card-title">요모 기록부</span>
+          <span class="card-desc">시청자별 상품 정리 · 추가/삭제 &amp; 시트 자동 백업</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
         <button class="mode-card calc" id="goCalc">
           <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -211,20 +237,20 @@
             <rect x="33" y="22" width="4.5" height="15" rx="1.8" fill="#f7a8c8" stroke="#c25c87" stroke-width="1.2"/>
             <line x1="35.25" y1="26" x2="35.25" y2="33" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
           </svg>
-          <h2>요모 계산기</h2>
-          <p>별풍선 개수 → 손실% 최소 추천 · 계산기 겸용</p>
+          <span class="card-title">요모 계산기</span>
+          <span class="card-desc">별풍선 개수 → 손실% 최소 추천 · 계산기 겸용</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
         <button class="mode-card muk" id="goMukbang">
-          <span class="emoji">🍽️</span><h2>먹방 트래커</h2>
-          <p>먹어 / 먹지마 트래커</p>
+          <span class="emoji" aria-hidden="true">🍽️</span><span class="card-title">먹방 트래커</span>
+          <span class="card-desc">먹어 / 먹지마 트래커</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
         <button class="mode-card raf" id="goRaffle">
-          <span class="emoji">🎟️</span><h2>요모 두산 뽑기</h2>
-          <p>추첨 보드 · 당첨 티커</p>
+          <span class="emoji" aria-hidden="true">🎟️</span><span class="card-title">요모 두산 뽑기</span>
+          <span class="card-desc">추첨 보드 · 당첨 티커</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
         <button class="mode-card kbo" id="goKbo">
-          <span class="emoji">⚾</span><h2>KBO 브래킷 예측</h2>
-          <p>가을야구 승부 예측 · 시드 추첨 &amp; 시뮬레이션</p>
+          <span class="emoji" aria-hidden="true">⚾</span><span class="card-title">KBO 브래킷 예측</span>
+          <span class="card-desc">가을야구 승부 예측 · 시드 추첨 &amp; 시뮬레이션</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
         <button class="mode-card claw" id="goClaw">
           <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -238,8 +264,8 @@
             <line x1="16.4" y1="35" x2="31.6" y2="35" stroke="#c98bab" stroke-width="1.4"/>
             <circle cx="20.6" cy="31.6" r="2" fill="#fff" opacity=".85"/>
           </svg>
-          <h2>클로 가챠</h2>
-          <p>클로 머신 · 캡슐 뽑기 랜덤 추첨 (메뉴/상품/벌칙)</p>
+          <span class="card-title">클로 가챠</span>
+          <span class="card-desc">클로 머신 · 캡슐 뽑기 랜덤 추첨 (메뉴/상품/벌칙)</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
         <button class="mode-card stamp" id="goStamp">
           <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
@@ -253,21 +279,21 @@
             <path d="M30 31 Q33 28.5 36 31" fill="none" stroke="#7e1f3c" stroke-width="1.6" stroke-linecap="round"/>
             <path d="M12 33 Q14 30 17 31.5" fill="none" stroke="#c9a86a" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <h2>노래 도장판</h2>
-          <p>신청곡 10곡 도장 모으기 · 다 모으면 보상 추첨</p>
+          <span class="card-title">노래 도장판</span>
+          <span class="card-desc">신청곡 10곡 도장 모으기 · 다 모으면 보상 추첨</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
       </div>
     </div>
-  </div>
+  </main>
 
-  <div class="hint" id="hint"></div>
+  <div class="hint" id="hint" role="status" aria-live="polite"></div>
 
 <script>
   var mascot = document.getElementById("mascot");
   var mouth = document.getElementById("mouth");
   var hint = document.getElementById("hint");
 
-  function openApp(url, name, w, h, opts) {
+  function openApp(url, name, w, h, opts, label) {
     mascot.classList.add("cheer");
     setTimeout(function () { mascot.classList.remove("cheer"); }, 600);
 
@@ -278,7 +304,7 @@
     var win = window.open(url, name, feat);
     if (win) {
       win.focus();
-      hint.textContent = "";
+      hint.textContent = (label || "앱") + " 새 창을 열었습니다.";
     } else {
       hint.textContent = "팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.";
     }
@@ -287,25 +313,25 @@
   document.getElementById("goLedger").addEventListener("click", function () {
     /* 화면 높이를 꽉 채워서 열기 */
     var h = (window.screen && screen.availHeight) ? screen.availHeight : 900;
-    openApp("prize-ledger.html", "prizeLedger", 1180, h, { top: 0 });
+    openApp("prize-ledger.html", "prizeLedger", 1180, h, { top: 0 }, "요모 기록부");
   });
   document.getElementById("goMukbang").addEventListener("click", function () {
-    openApp("mukbang-board.html", "mukbangLaunch", 615, 500);
+    openApp("mukbang-board.html", "mukbangLaunch", 615, 500, null, "먹방 트래커");
   });
   document.getElementById("goRaffle").addEventListener("click", function () {
-    openApp("raffle-board4.html?role=board", "raffleBoard", 830, 910);
+    openApp("raffle-board4.html?role=board", "raffleBoard", 830, 910, null, "요모 두산 뽑기");
   });
   document.getElementById("goKbo").addEventListener("click", function () {
-    openApp("kbo-bracket.html", "kboBracket", 1600, 950);
+    openApp("kbo-bracket.html", "kboBracket", 1600, 950, null, "KBO 브래킷 예측");
   });
   document.getElementById("goClaw").addEventListener("click", function () {
-    openApp("claw-machine.html", "clawMachine", 1260, 960);
+    openApp("claw-machine.html", "clawMachine", 1260, 960, null, "클로 가챠");
   });
   document.getElementById("goStamp").addEventListener("click", function () {
-    openApp("stamp-card.html", "stampCard", 700, 460);
+    openApp("stamp-card.html", "stampCard", 700, 460, null, "노래 도장판");
   });
   document.getElementById("goCalc").addEventListener("click", function () {
-    openApp("donation-calc.html", "donationCalc", 1215, 880);
+    openApp("donation-calc.html", "donationCalc", 1215, 880, null, "요모 계산기");
   });
 </script>
 </body>

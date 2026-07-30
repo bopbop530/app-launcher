@@ -55,7 +55,7 @@ body{
 .beam.b1{left:12%}.beam.b2{left:46%;animation-delay:-3s}.beam.b3{left:78%;animation-delay:-6s}
 @keyframes beamSway{from{transform:skewX(-14deg) translateX(-40px)}to{transform:skewX(-6deg) translateX(40px)}}
 #fx{position:fixed;inset:0;z-index:50;pointer-events:none}
-#version{position:fixed;bottom:10px;right:14px;z-index:20;font-size:11px;color:var(--dim);opacity:.4;letter-spacing:.08em;pointer-events:none}
+#version{position:fixed;bottom:10px;right:14px;z-index:20;font-size:11px;color:var(--dim);opacity:.85;letter-spacing:.08em;pointer-events:none}
 
 /* ── HUD ─────────────────────────── */
 #hud{
@@ -71,6 +71,28 @@ body{
   width:38px;height:34px;color:var(--dim);cursor:pointer;font-size:15px;
 }
 .hud-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25)}
+
+/* ===== accessibility (WCAG 2.1 AA) ===== */
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+.hud-btn:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible{
+  outline:3px solid var(--gold);
+  outline-offset:2px;
+}
+/* the HUD icons sat at --dim on a dark panel; lift them so they are legible */
+.hud-btn{color:var(--text)}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+}
 
 /* ── scenes ─────────────────────────── */
 .scene{
@@ -395,11 +417,15 @@ body.shake{animation:shake .5s}
 <div id="hud">
   <div class="logo"><span class="hype k">⚾ KBO 브래킷</span><span class="s">POSTSEASON PREDICTOR</span></div>
   <div id="hudbtns">
-    <button class="hud-btn" id="btn-home" title="처음 화면으로 (리셋)">🏠</button>
-    <button class="hud-btn" id="btn-mute" title="소리 켜기/끄기">🔊</button>
+    <button class="hud-btn" id="btn-home" title="처음 화면으로 (리셋)" aria-label="처음 화면으로 (리셋)"><span aria-hidden="true">🏠</span></button>
+    <button class="hud-btn" id="btn-mute" title="소리 켜기/끄기" aria-label="소리 켜기/끄기"><span aria-hidden="true">🔊</span></button>
   </div>
 </div>
 
+<!-- scene reveals are otherwise visual-only (4.1.3) -->
+<p id="sceneAnnounce" class="sr-only" role="status" aria-live="polite"></p>
+
+<main>
 <!-- TITLE -->
 <section id="scene-title" class="scene active">
   <div class="emblem">🏆</div>
@@ -470,6 +496,7 @@ body.shake{animation:shake .5s}
   <div id="review"></div>
   <div id="final-btns"><button class="btn" id="btn-again">새로운 도전 🎲</button></div>
 </section>
+</main>
 
 <script>
 /* ══════════════ data ══════════════ */
@@ -511,9 +538,13 @@ function challengerPick(i){return i===0?seeds[4]:picks[i-1]}
 function challengerActual(i){return i===0?seeds[4]:actual[i-1]}
 function seedOf(t){return seedMap[t.id]}
 
+/* showScene is called with CSS selectors ('#scene-seed'), not bare ids */
+const SCENE_NAMES={'#scene-title':'시작 화면','#scene-seed':'시드 추첨','#scene-bracket':'브래킷 예측','#scene-series':'시리즈 진행','#scene-final':'최종 결과'};
 function showScene(id){
   document.querySelectorAll('.scene').forEach(s=>s.classList.remove('active'));
   $(id).classList.add('active');
+  const live=document.getElementById('sceneAnnounce');
+  if(live) live.textContent=SCENE_NAMES[id]||'';
 }
 
 /* ══════════════ audio ══════════════ */

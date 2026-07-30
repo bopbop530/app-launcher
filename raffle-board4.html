@@ -1,9 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="version" content="2.3.0" />
+    <meta name="version" content="2.4.0" />
+    <!-- v2.4.0 2026-07-29 WCAG 2.1 AA: tiles are keyboard-operable <button>s,
+         lang=ko, contrast-corrected inks, live region, focus rings,
+         labelled icon buttons/select.
+         Knowing exceptions (stream-overlay design wins): no scrolling
+         (body overflow:hidden, so 1.4.4/1.4.10 not met) and no pause
+         control on the prize ticker (2.2.2 not met). -->
     <title>요모 두산 뽑기</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Poppins:wght@400;600&display=swap"
@@ -21,6 +27,15 @@
         --white-shadow: rgba(255, 255, 255, 0.8);
         --dark-shadow: rgba(200, 180, 190, 0.2);
         --win-text: #2e7d32;
+        /* --- contrast-corrected inks (WCAG 1.4.3) --- */
+        --tile-num: #cc3f5a;        /* 4.7:1 on white (was #ff6b6b 2.8:1)  */
+        --tile-num-hover: #b02e4d;  /* 6.3:1 on white (was #ff9aa2 2.0:1)  */
+        --prize-ink: #1f5c48;       /* 5.9:1 on mint  (was #3d8b73 3.1:1)  */
+        --fail-ink: #5c1020;        /* 6.7:1 on pink  (was #fff     2.0:1) */
+        --btn-ink: #7a1f2e;         /* 5.0:1 on pink  (was #fff     2.0:1) */
+        --label-ink: #6b6b6b;       /* 5.3:1 on white (was #888     3.5:1) */
+        --heading-ink: #b03a5b;     /* 5.5:1 on bg    (was #ff85a2  2.2:1) */
+        --focus-ring: #b03a5b;      /* 5.5:1 -- visible focus indicator    */
       }
 
       body {
@@ -38,7 +53,7 @@
       }
 
       h1 {
-        color: #ff85a2;
+        color: var(--heading-ink);
         margin-bottom: 20px;
         font-weight: 700;
         letter-spacing: -1px;
@@ -61,7 +76,7 @@
       }
       .launcher #launchBtn {
         background: linear-gradient(135deg, #ffb7b2, #ff9aa2);
-        color: white;
+        color: var(--btn-ink);
         font-family: inherit;
         font-size: 28px;
         font-weight: 700;
@@ -100,7 +115,7 @@
       .controls label {
         font-weight: 600;
         font-size: 14px;
-        color: #888;
+        color: var(--label-ink);
         display: flex;
         flex-direction: column;
         gap: 8px;
@@ -133,7 +148,7 @@
 
       button#startButton {
         background: linear-gradient(135deg, #ffb7b2, #ff9aa2);
-        color: white;
+        color: var(--btn-ink);
         font-size: 16px;
         font-weight: 700;
         border: none;
@@ -183,7 +198,7 @@
 
         font-size: 28px;
         font-weight: 700;
-        color: #ff6b6b;
+        color: var(--tile-num);
         cursor: pointer;
         user-select: none;
         box-shadow: 0 4px 0 #efefef;
@@ -194,7 +209,7 @@
         transform: translateY(-4px);
         box-shadow: 0 8px 0 #e0e0e0;
         border-color: var(--main-pink);
-        color: var(--dark-pink);
+        color: var(--tile-num-hover);
       }
       .tile.clicked {
         pointer-events: none;
@@ -203,14 +218,13 @@
       }
       .tile.prize {
         background: var(--pastel-green);
-        color: #3d8b73;
+        color: var(--prize-ink);
         border-color: #92d5bf;
       }
       .tile.fail {
         background: var(--dark-pink);
-        color: white;
+        color: var(--fail-ink);
         border-color: #e5868e;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         font-size: 36px;
       }
 
@@ -233,7 +247,7 @@
         position: absolute;
         white-space: nowrap;
         will-change: transform;
-        color: #ff6b6b;
+        color: var(--tile-num);
         font-weight: 700;
         font-size: 24px;
         padding: 0 10px;
@@ -300,15 +314,15 @@
       }
       .btn-load {
         background: #b5ead7;
-        color: #3d8b73;
+        color: var(--prize-ink);
       }
       .btn-save {
         background: #ffb7b2;
-        color: white;
+        color: var(--btn-ink);
       }
       .btn-del {
         background: #e0e0e0;
-        color: #888;
+        color: #5a5a5a;
       }
 
       /* --- Subtle stream controls (Open / Reset) --- */
@@ -333,7 +347,11 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        opacity: 0.2;
+        /* Kept deliberately faint so they stay unobtrusive on stream.
+           0.45 = 3.3:1, just above the 3:1 floor WCAG 1.4.11 asks of an icon
+           control (the buttons carry aria-labels, so 1.4.3's 4.5:1 doesn't
+           apply). 0.42 is the true minimum; below that this fails AA. */
+        opacity: 0.45;
         transition:
           opacity 0.2s,
           background 0.2s;
@@ -345,6 +363,53 @@
       /* Reset only appears once the board is live */
       #resetBtn {
         display: none;
+      }
+
+      /* ===== accessibility (WCAG 2.1 AA) ===== */
+      .sr-only {
+        position: absolute; width: 1px; height: 1px;
+        padding: 0; margin: -1px; overflow: hidden;
+        clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+      }
+
+      /* tiles are <button> now, so normalise the UA styling */
+      .tile {
+        font-family: inherit;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+      /* a revealed tile is disabled; keep the reveal colours, don't grey it out */
+      .tile:disabled {
+        opacity: 1;
+        cursor: default;
+      }
+
+      /* 2.4.7 Focus Visible -- the old pink ring was 1.4:1 against white */
+      .tile:focus-visible,
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .controls input:focus,
+      .controls textarea:focus {
+        border-color: var(--focus-ring);
+        box-shadow: 0 0 0 3px rgba(176, 58, 91, 0.25);
+      }
+      /* the stream controls stay faint on purpose, but must be findable by keyboard */
+      #liveControls button:focus-visible {
+        opacity: 1;
+        background: #fff;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: .001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: .001ms !important;
+        }
       }
     </style>
   </head>
@@ -384,10 +449,11 @@
       if (is_admin) {
         // WE ARE IN THE SECRET ADMIN WINDOW. RENDER ONLY THE LIST.
         document.body.style.overflow = "auto";
+        document.documentElement.lang = "ko";
         document.body.innerHTML = `
               <div style="max-width: 400px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                  <h2 style="text-align:center; color:#ff85a2; margin-top:0;">🕵️🕵️🕵️</h2>
-                  <ul id="adminList" style="list-style:none; padding:0; font-size: 18px; line-height: 2.2;">
+                  <h2 style="text-align:center; color:#b03a5b; margin-top:0;"><span aria-hidden="true">🕵️🕵️🕵️</span><span class="sr-only">당첨 번호 목록</span></h2>
+                  <ul id="adminList" role="status" aria-live="polite" style="list-style:none; padding:0; font-size: 18px; line-height: 2.2;">
                     <li style="text-align:center; color:#bbb;">메인 화면에서 게임을 시작하면 번호가 나타납니다.</li>
                   </ul>
               </div>
@@ -426,12 +492,17 @@
 
     <!-- MAIN STREAM UI (Only renders if NOT admin) -->
 
+    <h1 class="sr-only">요모 두산 뽑기</h1>
+
     <div id="liveControls">
-      <button id="adminBtn" onclick="openAdminPanel()" title="Open">👁️</button>
-      <button id="resetBtn" onclick="handleButtonClick()" title="Reset">🔄</button>
+      <button id="adminBtn" onclick="openAdminPanel()" aria-label="당첨 번호 확인창 열기">👁️</button>
+      <button id="resetBtn" onclick="handleButtonClick()" aria-label="보드 초기화">🔄</button>
     </div>
 
-    <div class="controls">
+    <!-- tile reveals are otherwise a visual-only event (4.1.3) -->
+    <p id="liveAnnounce" class="sr-only" role="status" aria-live="polite"></p>
+
+    <main class="controls">
       <label id="totalLabel">
         Total Pieces (Tiles)
         <input type="number" id="total" min="1" value="100" />
@@ -444,16 +515,17 @@
         ></textarea>
       </label>
       <button id="startButton" onclick="handleButtonClick()">Start</button>
-    </div>
+    </main>
 
-    <div id="board" class="board" style="display: none"></div>
+    <div id="board" class="board" style="display: none"
+         role="group" aria-label="뽑기 보드"></div>
     <div id="prizeTicker" class="ticker" style="display: none"></div>
 
     <div class="right-sidebar">
       <div class="panel preset-panel">
         <h3>💾 리스트 저장소</h3>
         <div class="preset-controls">
-          <select id="presetSelect" class="preset-select">
+          <select id="presetSelect" class="preset-select" aria-label="저장된 상품 리스트 선택">
             <option value="" disabled selected>저장된 리스트 선택...</option>
           </select>
           <div class="preset-btn-group">
@@ -575,12 +647,12 @@
         const total = parseInt(totalInput.value),
           prizeRaw = prizeInput.value.trim();
         if (!total || total <= 0 || !prizeRaw)
-          return alert("Please enter a valid number and at least one prize.");
+          return alert("칸 수와 상품을 최소 1개 이상 입력해주세요.");
         localStorage.setItem("bingo_total", total);
         localStorage.setItem("bingo_prizes", prizeRaw);
 
         const prizes = parsePrizes(prizeRaw);
-        if (prizes.length > total) return alert("Too many prizes.");
+        if (prizes.length > total) return alert("상품이 칸 수보다 많습니다.");
 
         const values = [...prizes];
         while (values.length < total) values.push("꽝");
@@ -601,36 +673,56 @@
         saveBoardState(values, clickedTiles, prizes);
 
         values.forEach((val, index) => {
-          const tile = document.createElement("div");
-          tile.className = "tile";
-          tile.textContent = index + 1;
-          tile.addEventListener("click", () => {
-            if (clickedTiles[index]) return;
-            tile.classList.add("clicked");
-            clickedTiles[index] = true;
-            if (val === "꽝") {
-              tile.classList.add("fail");
-              tile.textContent = "꽝";
-              playSound(failAudio);
-            } else {
-              tile.classList.add("prize");
-              tile.textContent = val;
-              playSound(winAudio);
-
-              // --- ADD THIS: Auto-shrink text to fit the box gracefully ---
-              if (val.length >= 4) {
-                tile.style.fontSize = "14px";
-              } else if (val.length === 3) {
-                tile.style.fontSize = "18px";
-              } else {
-                tile.style.fontSize = "28px"; // Default size for 1-2 chars
-              }
-            }
-            saveBoardState(values, clickedTiles, prizes);
-          });
-          board.appendChild(tile);
+          board.appendChild(makeTile(val, index, values, prizes, false));
         });
         buildTicker(prizes);
+      }
+
+      /* ---------- tiles ----------
+         Tiles are <button>s so they are reachable by Tab and fire on Enter/Space
+         (2.1.1). Built here once because generateBoard and restoreBoard both
+         need identical behaviour. */
+      function paintTile(tile, val, index) {
+        tile.classList.add("clicked");
+        tile.disabled = true;
+        if (val === "꽝") {
+          tile.classList.add("fail");
+          tile.textContent = "꽝";
+          tile.setAttribute("aria-label", `${index + 1}번 꽝`);
+        } else {
+          tile.classList.add("prize");
+          tile.textContent = val;
+          tile.setAttribute("aria-label", `${index + 1}번 당첨: ${val}`);
+          // shrink long prize names so they still fit the 65px tile
+          tile.style.fontSize =
+            val.length >= 4 ? "14px" : val.length === 3 ? "18px" : "28px";
+        }
+      }
+
+      function makeTile(val, index, values, prizes, revealed) {
+        const tile = document.createElement("button");
+        tile.type = "button";
+        tile.className = "tile";
+        tile.textContent = index + 1;
+        tile.setAttribute("aria-label", `${index + 1}번, 아직 열지 않음`);
+        if (revealed) paintTile(tile, val, index);
+        tile.addEventListener("click", () => {
+          if (clickedTiles[index]) return;
+          clickedTiles[index] = true;
+          paintTile(tile, val, index);
+          playSound(val === "꽝" ? failAudio : winAudio);
+          announce(
+            val === "꽝" ? `${index + 1}번 꽝` : `${index + 1}번 당첨! ${val}`,
+          );
+          saveBoardState(values, clickedTiles, prizes);
+        });
+        return tile;
+      }
+
+      /* 4.1.3 Status Messages -- revealing a tile is a visual-only event otherwise */
+      function announce(msg) {
+        const live = document.getElementById("liveAnnounce");
+        if (live) live.textContent = msg;
       }
 
       function buildTicker(prizes) {
@@ -681,44 +773,9 @@
         bc.postMessage({ type: "NEW_BOARD", values: state.values });
 
         state.values.forEach((val, index) => {
-          const tile = document.createElement("div");
-          tile.className = "tile";
-          tile.textContent = index + 1;
-          if (state.clicked[index]) {
-            tile.classList.add("clicked");
-            if (val === "꽝") {
-              tile.classList.add("fail");
-              tile.textContent = "꽝";
-            } else {
-              tile.classList.add("prize");
-              tile.textContent = val;
-            }
-          }
-          tile.addEventListener("click", () => {
-            if (clickedTiles[index]) return;
-            tile.classList.add("clicked");
-            clickedTiles[index] = true;
-            if (val === "꽝") {
-              tile.classList.add("fail");
-              tile.textContent = "꽝";
-              playSound(failAudio);
-            } else {
-              tile.classList.add("prize");
-              tile.textContent = val;
-              playSound(winAudio);
-
-              // --- ADD THIS: Auto-shrink text to fit the box gracefully ---
-              if (val.length >= 4) {
-                tile.style.fontSize = "14px";
-              } else if (val.length === 3) {
-                tile.style.fontSize = "18px";
-              } else {
-                tile.style.fontSize = "28px"; // Default size for 1-2 chars
-              }
-            }
-            saveBoardState(state.values, clickedTiles, state.prizes);
-          });
-          board.appendChild(tile);
+          board.appendChild(
+            makeTile(val, index, state.values, state.prizes, !!state.clicked[index]),
+          );
         });
         buildTicker(
           state.prizes ||

@@ -7,6 +7,13 @@
   whenever you change this file. The badge + changelog panel
   in the app render straight from that array.
   ============================================================
+  v1.7.0 — 2026-07-29
+    - WCAG 2.1 AA pass: note is keyboard-operable (Enter/Space, focus
+      returns after commit), note input labelled, count changes announced
+      via role=status, focus rings added, RESET/version contrast raised,
+      h1/main landmarks, prefers-reduced-motion honoured
+    - Note box stays visually blank on purpose (clean on stream); it is
+      still named for screen readers via aria-label
   v1.6.0 — 2026-07-08
     - Note moved to its own container above the tracker (shorter height)
   v1.5.0 — 2026-07-08
@@ -244,22 +251,50 @@
     position: fixed;
     right: 14px; bottom: 12px;
     z-index: 6;
-    color: rgba(255,255,255,.45);
+    color: rgba(255,255,255,.62);   /* .45 measured 3.2:1 on the light end of the bg */
     font-size: 12px; font-weight: 600; letter-spacing: 1px;
     pointer-events: none;
     user-select: none;
   }
+
+  /* ===== accessibility (WCAG 2.1 AA) ===== */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  /* .6 measured 4.44:1 against #3a4a63; .78 clears 4.5:1 across the whole gradient */
+  .reset { color: rgba(255,255,255,.78); border-color: rgba(255,255,255,.45); }
+
+  .btn:focus-visible,
+  .reset:focus-visible,
+  .note:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 3px;
+  }
+  .note-input:focus-visible { outline: 2px solid var(--eat-glow); outline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <h1 class="sr-only">먹어 / 먹지마 트래커</h1>
+  <main class="wrap">
     <div class="note-box" id="noteRow">
-      <div class="note empty" id="note" title="클릭해서 메모 입력">＋ 메모 추가</div>
-      <input class="note-input" id="noteInput" type="text" autocomplete="off" spellcheck="false" maxlength="80" />
+      <div class="note empty" id="note" role="button" tabindex="0"
+           aria-label="메모 편집"></div>
+      <input class="note-input" id="noteInput" type="text" autocomplete="off" spellcheck="false"
+             maxlength="80" aria-label="메모 내용" />
     </div>
 
     <div class="display zero" id="display">
-      <div class="view" id="view">
+      <div class="view" id="view" role="status" aria-live="polite" aria-atomic="true">
         <div class="label" id="label">먹어 / 먹지마</div>
         <div class="count" id="count">0</div>
       </div>
@@ -272,15 +307,21 @@
     </div>
 
     <div class="footer">
-      <button class="reset" id="reset">RESET</button>
+      <button class="reset" id="reset" lang="en">RESET<span class="sr-only" lang="ko"> — 카운트 초기화</span></button>
     </div>
-  </div>
+  </main>
 
   <span class="ver" id="ver">v0.0.0</span>
 
 <script>
   /* ===================== version control ===================== */
   var VERSIONS = [
+    { v: "1.7.0", d: "2026-07-29", notes: [
+      "접근성(WCAG 2.1 AA) 대응: 메모를 키보드로 입력 가능 (Enter/Space)",
+      "카운트 변경을 스크린리더에 알림 (role=status)",
+      "포커스 표시 추가, RESET·버전 텍스트 대비 상향",
+      "메모란은 화면상 공백 유지 (방송 화면 깔끔하게)"
+    ]},
     { v: "1.6.0", d: "2026-07-08", notes: [
       "메모를 트래커 위 별도 컨테이너로 분리 (높이도 더 낮게)"
     ]},
@@ -376,6 +417,8 @@
   /* ===================== note (independent) ===================== */
   (function () {
     var NOTE_KEY = "eat-tracker-note";
+    // intentionally blank: keeps the note box clean on stream.
+    // The box is still reachable and named for screen readers via aria-label.
     var PLACEHOLDER = "";
 
     var noteRow   = document.getElementById("noteRow");
@@ -391,9 +434,11 @@
       if (note.trim() === "") {
         noteEl.textContent = PLACEHOLDER;
         noteEl.classList.add("empty");
+        noteEl.setAttribute("aria-label", "메모 추가");
       } else {
         noteEl.textContent = note;
         noteEl.classList.remove("empty");
+        noteEl.setAttribute("aria-label", "메모 편집: " + note);
       }
     }
 
@@ -419,10 +464,17 @@
     }
 
     noteRow.addEventListener("click", startEdit);
+    // the note is a div, so Enter/Space have to be wired up by hand (2.1.1 Keyboard)
+    noteEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        startEdit();
+      }
+    });
     noteInput.addEventListener("blur", commitEdit);
     noteInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); noteInput.blur(); }
-      else if (e.key === "Escape") { e.preventDefault(); cancel = true; noteInput.blur(); }
+      if (e.key === "Enter") { e.preventDefault(); noteInput.blur(); noteEl.focus(); }
+      else if (e.key === "Escape") { e.preventDefault(); cancel = true; noteInput.blur(); noteEl.focus(); }
     });
 
     renderNote();
