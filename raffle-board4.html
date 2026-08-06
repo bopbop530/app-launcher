@@ -777,10 +777,6 @@
             makeTile(val, index, state.values, state.prizes, !!state.clicked[index]),
           );
         });
-        buildTicker(
-          state.prizes ||
-            parsePrizes(document.getElementById("prizeNames").value),
-        );
         if (state.started) {
           controlsPanel.style.display = "none";
           presetPanel.style.display = "none";
@@ -789,6 +785,13 @@
           board.style.display = "grid";
           prizeTicker.style.display = "block";
         }
+        // Must run AFTER the ticker is shown: buildTicker sizes the scroll
+        // animation from offsetWidth, which is 0 while display:none -- that
+        // left the restored ticker frozen. (generateBoard already shows it first.)
+        buildTicker(
+          state.prizes ||
+            parsePrizes(document.getElementById("prizeNames").value),
+        );
       }
 
       /* --- Preset Logic --- */
