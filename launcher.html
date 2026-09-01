@@ -78,7 +78,7 @@
   }
 
   /* ---------- app select ---------- */
-  .modes { display: grid; grid-template-columns: repeat(2, 220px); gap: 18px; justify-content: center; }
+  .modes { display: grid; grid-template-columns: repeat(3, 220px); gap: 18px; justify-content: center; }
   .mode-card {
     cursor: pointer;
     border: none;
@@ -101,6 +101,7 @@
   .mode-card.claw  { background: linear-gradient(160deg, var(--lavender), var(--blossom)); }
   .mode-card.stamp { background: linear-gradient(160deg, var(--butter), var(--peach)); }
   .mode-card.calc  { background: linear-gradient(160deg, var(--mint), var(--sky)); }
+  .mode-card.star  { background: linear-gradient(160deg, var(--butter), var(--sky)); }
   .mode-card .emoji { font-size: 40px; display: block; margin-bottom: 8px; }
   .mode-card .icon { width: 46px; height: 46px; display: block; margin: 0 auto 8px; }
   .mode-card .card-title { display: block; font-size: 20px; font-weight: 800; }
@@ -282,6 +283,17 @@
           <span class="card-title">노래 도장판</span>
           <span class="card-desc">신청곡 10곡 도장 모으기 · 다 모으면 보상 추첨</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
+        <button class="mode-card star" id="goStar">
+          <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M24 27 Q24 33 21.5 36 Q19.5 39 22.5 41" fill="none" stroke="#c9a86a" stroke-width="1.6" stroke-linecap="round"/>
+            <polygon points="24,5 28,14.5 38.3,15.4 30.5,22.1 32.8,32.1 24,26.8 15.2,32.1 17.5,22.1 9.7,15.4 20,14.5"
+              fill="#fbf0c9" stroke="#d9bd8a" stroke-width="1.8" stroke-linejoin="round"/>
+            <ellipse cx="19" cy="14" rx="3.4" ry="2.1" fill="#ffffff" opacity=".75" transform="rotate(-24 19 14)"/>
+            <circle cx="24" cy="27.4" r="1.9" fill="#d9bd8a"/>
+          </svg>
+          <span class="card-title">요모 별풍판</span>
+          <span class="card-desc">별풍선을 눌러 보너스 상품 공개 · 팽이 회전 연출</span><span class="sr-only"> (새 창에서 열립니다)</span>
+        </button>
       </div>
     </div>
   </main>
@@ -329,6 +341,9 @@
   });
   document.getElementById("goStamp").addEventListener("click", function () {
     openApp("stamp-card.html", "stampCard", 700, 460, null, "노래 도장판");
+  });
+  document.getElementById("goStar").addEventListener("click", function () {
+    openApp("star-bonus.html", "starBonus", 1140, 880, null, "요모 별풍판");
   });
   document.getElementById("goCalc").addEventListener("click", function () {
     openApp("donation-calc.html", "donationCalc", 1215, 880, null, "요모 계산기");

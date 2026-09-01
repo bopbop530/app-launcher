@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>요모 별풍판 — YOMO'S STAR BOARD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<!-- Pretendard: the Korean UI face launcher.html and donation-calc.html name first but
+     never load, so they silently fall back. Loaded here for real. -->
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+  :root {
+    --acc: #3fd8ff;
+    --acc-deep: #0f9cd8;
+    --acc-2: #27baec;      /* dark end for fills that carry small text */
+    --acc-rgb: 63, 216, 255;
+    --btn-text: #07455f;
+    --line-strong: #878f97; /* 3.27:1 on white, 3.07:1 on the field fill */
+    --navy: #14264d;
+    --card: #ffffff;
+    --line: #d7e3f0;
+    --txt: #14264d;
+    --txt-soft: #4d5f7a;
+    --acc-ink: #095a7d;
+    --tile-w: 234px;
+    --tile-h: 178px;
+    --grid-gap: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+
+  body {
+    /* Pretendard is built for Korean UI text and stays crisp at 13-15px where
+       Noto Sans KR and Gothic A1 both went thin; Jua is display-only now */
+    font-family: "Pretendard Variable", Pretendard, "Gothic A1", "Malgun Gothic", system-ui, sans-serif;
+    font-weight: 600;
+    background: radial-gradient(1100px 700px at 50% -12%, #ffffff 0%, #eef4fa 45%, #d9e4f0 100%);
+    color: var(--txt);
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 16px 30px;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: .16;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob.b1 { width: 420px; height: 420px; left: -120px; top: 12%; animation: drift1 15s ease-in-out infinite alternate; }
+  .blob.b2 { width: 380px; height: 380px; right: -110px; top: 45%; animation: drift2 18s ease-in-out infinite alternate; }
+  .blob.b3 { width: 300px; height: 300px; background: #b9a4ff; left: 42%; bottom: -140px; animation: drift1 21s ease-in-out infinite alternate; }
+  @keyframes drift1 { from { transform: translate(0,0) } to { transform: translate(60px,-40px) } }
+  @keyframes drift2 { from { transform: translate(0,0) } to { transform: translate(-70px,50px) } }
+
+  .topbar {
+    width: 100%;
+    max-width: 1060px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 12px;
+    z-index: 1;
+  }
+  .topbar h1 {
+    font-family: "Jua", "Noto Sans KR", sans-serif;
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: 1px;
+    color: var(--navy);
+    text-shadow: 0 2px 0 #fff, 0 0 22px rgba(var(--acc-rgb), .45);
+  }
+  .topbar .en { font-size: 12.5px; font-weight: 900; letter-spacing: 3px; color: var(--acc-ink); }
+  .topbar .ver { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--txt-soft); }
+
+  /* flex-start, or the panel stretches to the stage height and trails white space */
+  .stage { width: 100%; max-width: 1060px; flex: 1; display: flex; justify-content: center; align-items: flex-start; z-index: 1; }
+
+  .hidden { display: none !important; }
+  .invisible { visibility: hidden !important; }
+
+  .white-panel {
+    background: var(--card);
+    border: 1.5px solid rgba(var(--acc-rgb), .45);
+    border-radius: 22px;
+    box-shadow: 0 0 26px rgba(var(--acc-rgb), .16), 0 16px 36px rgba(96, 125, 165, .28), inset 0 1px 0 #fff;
+    color: var(--txt);
+  }
+
+  .btn {
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    font-weight: 900;
+    color: var(--btn-text);
+    /* stops at acc-2, not deep, so the label keeps 4.5:1 over the whole fill;
+       the inset ink ring is the boundary (a bare accent fill measured as low as
+       1.38:1 against the white panel) */
+    background: linear-gradient(165deg, var(--acc), var(--acc-2));
+    border-radius: 14px;
+    padding: 13px 28px;
+    font-size: 16px;
+    letter-spacing: .5px;
+    box-shadow: inset 0 0 0 1.5px var(--acc-ink), 0 0 18px rgba(var(--acc-rgb), .4), inset 0 2px 0 rgba(255,255,255,.4), 0 6px 14px rgba(96,125,165,.35);
+    transition: transform .12s ease, box-shadow .2s ease, opacity .2s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1.5px var(--acc-ink), 0 0 28px rgba(var(--acc-rgb), .6), inset 0 2px 0 rgba(255,255,255,.4), 0 10px 18px rgba(96,125,165,.4); }
+  .btn:active { transform: translateY(0) scale(.98); }
+  .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn.ghost {
+    background: #fff;
+    color: var(--acc-ink);
+    box-shadow: inset 0 0 0 1.5px var(--acc-ink), 0 4px 10px rgba(96,125,165,.25);
+  }
+  .btn.ghost:hover { box-shadow: inset 0 0 0 2px var(--acc-ink), 0 0 14px rgba(var(--acc-rgb), .35); }
+  .btn.sm { padding: 10px 18px; font-size: 13.5px; border-radius: 12px; }
+
+  /* ---------- setup ---------- */
+  .setup { width: 620px; padding: 28px; margin-top: 14px; }
+  .setup h2 {
+    font-family: "Jua", sans-serif;
+    font-weight: 400;
+    font-size: 26px;
+    letter-spacing: .5px;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+  .setup ul.sub { list-style: none; margin-bottom: 18px; }
+  .setup ul.sub li {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--txt-soft);
+    line-height: 1.6;
+    padding: 3px 0 3px 20px;
+    position: relative;
+  }
+  .setup ul.sub li::before {
+    content: "";
+    position: absolute;
+    left: 4px; top: 12px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--acc);
+    box-shadow: 0 0 6px rgba(var(--acc-rgb), .8);
+  }
+  .setup ul.sub b { color: var(--acc-ink); font-weight: 900; }
+
+  .add-row { display: flex; gap: 10px; align-items: stretch; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.amt { width: 168px; flex: none; }
+  .field.prize { flex: 1 1 auto; min-width: 0; }
+  /* tracked-out Korean at 11px was the worst offender — bigger, tighter, bolder */
+  .field label { font-size: 13px; font-weight: 800; letter-spacing: 0; color: var(--acc-ink); }
+  .field input {
+    width: 100%;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 14px;
+    padding: 13px 15px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--txt);
+    background: #f4f8fc;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .field input::placeholder { color: #65727f; font-weight: 500; }   /* 4.61:1 on the fill */
+  .field input:focus { border-color: var(--acc-ink); box-shadow: 0 0 14px rgba(var(--acc-rgb), .3); }
+  .add-row .btn { align-self: flex-end; padding: 13px 22px; }
+
+  .err { font-size: 12.5px; font-weight: 700; color: #b0182f; height: 18px; margin-top: 8px; }
+
+  /* bottom-aligned so the label clears its list by the same 6px a field label
+     clears its input — the taller count chip would otherwise push it up */
+  .list-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin: 10px 0 6px;
+  }
+  .panel-title { font-size: 13px; font-weight: 800; color: var(--acc-ink); letter-spacing: .3px; }
+  .list {
+    list-style: none;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #f4f8fc;
+    max-height: 244px;
+    overflow-y: auto;
+  }
+  .list:empty::after {
+    content: "아직 없어요 — 위에서 하나씩 추가하세요";
+    display: block;
+    padding: 26px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--txt-soft);
+  }
+  .list li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 12px 11px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .list li:last-child { border-bottom: none; }
+  .list li .idx {
+    width: 22px; flex: none;
+    font-size: 12px; font-weight: 900; color: var(--txt-soft); text-align: right;
+  }
+  .list li .amt {
+    flex: none;
+    font-family: "Jua", sans-serif; font-weight: 400; font-size: 20px; line-height: 1;
+    color: var(--acc-ink);
+    min-width: 92px; text-align: right;
+  }
+  /* not inherit — the parent is Jua, and "개" should stay in the body face */
+  .list li .amt small { font-family: "Pretendard Variable", Pretendard, sans-serif; font-size: 12px; font-weight: 800; margin-left: 3px; }
+  .list li .prize {
+    flex: 1 1 auto; min-width: 0;
+    font-size: 15px; font-weight: 700; color: var(--txt);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .list li .del {
+    flex: none; cursor: pointer;
+    border: none; background: #fff; color: #b0182f;
+    font: inherit; font-size: 12px; font-weight: 900;
+    border-radius: 10px; padding: 7px 11px;
+    box-shadow: inset 0 0 0 1.5px #b0182f;   /* 6.96:1 on white — was a 35% wash */
+  }
+  .list li .del:hover { background: #fff1f3; }
+
+  .count-chip {
+    display: flex; align-items: center; gap: 10px;
+    border: 2px solid rgba(var(--acc-rgb), .55);
+    background: linear-gradient(165deg, rgba(var(--acc-rgb), .14), rgba(var(--acc-rgb), .05));
+    border-radius: 14px;
+    padding: 5px 14px;
+    font-size: 13.5px; font-weight: 800; color: var(--navy);
+    box-shadow: 0 0 16px rgba(var(--acc-rgb), .25), inset 0 1px 0 rgba(255,255,255,.7);
+  }
+  .count-chip .num {
+    font-family: "Jua", sans-serif; font-weight: 400; font-size: 21px; line-height: 1;
+    color: var(--acc-ink);
+  }
+  .setup .meta { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; }
+
+  /* ---------- board ---------- */
+  /* width follows the grid — a short list gets a small board, not a sea of white */
+  .board { max-width: 100%; padding: 24px 26px 26px; }
+  .board-head { display: flex; align-items: center; gap: 18px; margin-bottom: 16px; }
+  .board-head .spacer { flex: 1 1 auto; }
+  .board-head .btn { flex: none; }
+  /* Jua reads thin at this size — the heavier sans is far clearer on a light panel */
+  .board-title {
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: -.3px;
+    color: var(--navy);
+    white-space: nowrap;
+  }
+  .board-title b { color: var(--acc-ink); font-weight: 900; }
+
+  .grid-wrap { position: relative; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, var(--tile-w));   /* column count set in renderBoard */
+    grid-auto-rows: var(--tile-h);
+    justify-content: center;
+    gap: var(--grid-gap);
+    /* +24 covers the padding, which box-sizing counts inside max-height */
+    max-height: calc(var(--tile-h) * 3 + var(--grid-gap) * 2 + 24px);
+    overflow: visible;        /* scroll clipping would shave the hover lift off the top row */
+    padding: 12px 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--acc-deep) rgba(var(--acc-rgb), .12);
+  }
+  /* only a list past 12 needs to scroll — and only then does anything clip */
+  .grid.scrolls { overflow-y: auto; padding-right: 14px; }
+  .grid::-webkit-scrollbar { width: 10px; }
+  .grid::-webkit-scrollbar-track { background: rgba(var(--acc-rgb), .12); border-radius: 10px; }
+  .grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--acc-deep), var(--acc-ink));
+    border-radius: 10px;
+    border: 2px solid var(--card);
+  }
+  /* fade hint that there is more below */
+  .grid-wrap::after {
+    content: "";
+    position: absolute; left: 2px; right: 16px; bottom: 0; height: 34px;
+    background: linear-gradient(180deg, rgba(255,255,255,0), var(--card));
+    border-radius: 0 0 14px 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .25s;
+  }
+  .grid-wrap.more::after { opacity: 1; }
+
+  .tile {
+    position: relative;
+    cursor: pointer;
+    /* tinted with the theme instead of near-white; the balloon keeps its punch
+       because the wash tops out well below the full accent */
+    border: 1.5px solid var(--acc-ink);   /* acc-deep measured 2.13:1 on yellow */
+    border-radius: 20px;
+    background:
+      linear-gradient(168deg, rgba(var(--acc-rgb), .10) 0%, rgba(var(--acc-rgb), .34) 100%),
+      #ffffff;
+    box-shadow: 0 0 14px rgba(var(--acc-rgb), .16), 0 8px 18px rgba(96,125,165,.2), inset 0 1px 0 rgba(255,255,255,.75);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px;
+    font: inherit; color: var(--txt);
+    transition: transform .14s ease, box-shadow .22s ease, border-color .22s;
+    overflow: hidden;
+  }
+  .tile:hover {
+    transform: translateY(-4px);
+    z-index: 2;
+    border-color: var(--acc-ink);
+    background:
+      linear-gradient(168deg, rgba(var(--acc-rgb), .20) 0%, rgba(var(--acc-rgb), .48) 100%),
+      #ffffff;
+    box-shadow: 0 0 26px rgba(var(--acc-rgb), .42), 0 14px 26px rgba(96,125,165,.3);
+  }
+  .tile:active { transform: translateY(-1px) scale(.985); }
+  .tile .star-ico { width: 76px; height: 76px; display: block; }
+  /* the balloon swings from where its string is tied, not from its middle */
+  .tile:hover .star-ico,
+  .tile:focus-visible .star-ico {
+    transform-origin: 50% 92%;
+    animation: balloon-bob 1.5s ease-in-out infinite;
+  }
+  @keyframes balloon-bob {
+    0%   { transform: translateY(0)    rotate(-4deg) scale(1); }
+    50%  { transform: translateY(-7px) rotate(4deg)  scale(1.06); }
+    100% { transform: translateY(0)    rotate(-4deg) scale(1); }
+  }
+  .tile .tile-amt {
+    font-family: "Jua", sans-serif; font-weight: 400; font-size: 30px; line-height: 1.05;
+    color: var(--navy);
+  }
+  /* revealed: locked, and the bonus now lives on the tile face
+     (after .tile:hover in source order so hover can't lift a dead tile) */
+  .tile.opened {
+    cursor: default;
+    transform: none;
+    gap: 0;
+    /* top pad clears the header so the prize centres in the space left over */
+    padding: 54px 14px 16px;
+    background: linear-gradient(168deg, var(--acc), var(--acc-2));
+    border-color: var(--acc-ink);
+    box-shadow: 0 0 18px rgba(var(--acc-rgb), .38), inset 0 2px 0 rgba(255,255,255,.4), 0 8px 18px rgba(96,125,165,.24);
+  }
+  /* same shape as the reveal card's back face: amount up top, prize in the middle */
+  .tile.opened .op-amt {
+    position: absolute;
+    left: 16px; right: 16px; top: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255,255,255,.34);
+    font-family: "Jua", sans-serif; font-weight: 400; font-size: 22px; line-height: 1;
+    color: var(--btn-text);   /* 22px is under the large-text cut-off — no opacity fade */
+  }
+  .tile.opened .op-prize {
+    font-family: "Jua", sans-serif; font-weight: 400;
+    font-size: 32px; line-height: 1.18;
+    color: var(--btn-text);
+    word-break: keep-all;
+    text-shadow: 0 2px 8px rgba(0,0,0,.16);
+  }
+  .tile.opened .op-prize.t-md { font-size: 26px; }
+  .tile.opened .op-prize.t-sm { font-size: 21px; }
+  .tile.opened .op-prize.t-xs { font-size: 17px; }
+
+  /* ---------- spotlight reveal ---------- */
+  .ov {
+    position: fixed; inset: 0; z-index: 40;
+    background: radial-gradient(circle at 50% 46%, rgba(var(--acc-rgb), .16) 0%, rgba(6,10,18,.93) 58%, rgba(3,5,10,.97) 100%);
+    backdrop-filter: blur(5px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity .35s ease;
+  }
+  .ov.show { opacity: 1; }
+
+  .spot { will-change: transform; }
+  .stage3d {
+    position: relative;
+    width: 320px; height: 400px;
+    perspective: 1200px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .halo {
+    position: absolute; left: 50%; top: 50%;
+    width: 620px; height: 620px;
+    transform: translate(-50%,-50%);
+    background: radial-gradient(circle, rgba(var(--acc-rgb), .34) 0%, rgba(var(--acc-rgb), 0) 62%);
+    opacity: 0;
+    transition: opacity .6s;
+    pointer-events: none;
+  }
+  .halo.on { opacity: 1; }
+  .ring {
+    position: absolute; left: 50%; top: 50%;
+    width: 240px; height: 240px; margin: -120px 0 0 -120px;
+    border-radius: 50%;
+    border: 3px solid rgba(var(--acc-rgb), .85);
+    opacity: 0; pointer-events: none;
+  }
+  .ring.go { animation: ringout .8s ease-out forwards; }
+  @keyframes ringout {
+    0%   { transform: scale(.35); opacity: .95; }
+    100% { transform: scale(2.6); opacity: 0; }
+  }
+
+  .card3d {
+    position: relative;
+    width: 300px; height: 380px;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 26px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 22px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .face.front {
+    /* same wash as the tile it flies out of, so the spotlight reads as continuous */
+    background:
+      linear-gradient(170deg, rgba(var(--acc-rgb), .10) 0%, rgba(var(--acc-rgb), .34) 100%),
+      #ffffff;
+    border: 2px solid rgba(var(--acc-rgb), .7);
+    box-shadow: 0 0 44px rgba(var(--acc-rgb), .4), inset 0 2px 0 #fff;
+  }
+  .face.back {
+    transform: rotateY(180deg);
+    background: linear-gradient(172deg, var(--acc), var(--acc-2));
+    border: 2px solid rgba(255,255,255,.55);
+    box-shadow: 0 0 54px rgba(var(--acc-rgb), .55), inset 0 2px 0 rgba(255,255,255,.5);
+  }
+  .face .rv-label {
+    font-size: 11.5px; font-weight: 900; letter-spacing: 4px;
+    margin-bottom: 10px;
+  }
+  .face.front .rv-label { color: var(--acc-ink); }
+  .face.back .rv-label { color: var(--btn-text); }   /* 11.5px — no opacity fade */
+
+  .face .star-big { width: 168px; height: 168px; display: block; }
+  .face .big-amt {
+    font-family: "Jua", sans-serif; font-weight: 400; font-size: 46px; line-height: 1.1;
+    color: var(--navy); margin-top: 14px;
+    text-shadow: 0 0 18px rgba(var(--acc-rgb), .5);
+  }
+  /* back face: amount sits up top as a header, BONUS + prize hold the centre */
+  .back-head {
+    position: absolute;
+    left: 26px; right: 26px; top: 24px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid rgba(255,255,255,.34);
+    font-family: "Jua", sans-serif; font-weight: 400; font-size: 32px; line-height: 1;
+    color: var(--btn-text);
+  }
+  .prize-name {
+    font-family: "Jua", sans-serif; font-weight: 400;
+    font-size: 46px; line-height: 1.14;
+    color: var(--btn-text);
+    text-shadow: 0 3px 14px rgba(0,0,0,.3);
+    word-break: keep-all;
+    width: 100%;
+    transform: scale(.2);
+    opacity: 0;
+    transition: transform .55s cubic-bezier(.34,1.7,.64,1), opacity .35s;
+  }
+  .prize-name.pop { transform: scale(1); opacity: 1; }
+  .prize-name.f-md { font-size: 36px; }
+  .prize-name.f-sm { font-size: 27px; }
+  .prize-name.f-xs { font-size: 21px; }
+
+  .spark {
+    position: absolute; left: 50%; top: 50%;
+    font-size: 26px;
+    animation: sparkfly 1.1s ease-out forwards;
+    pointer-events: none;
+    z-index: 3;
+  }
+  @keyframes sparkfly {
+    0%   { transform: translate(0,0) scale(.4); opacity: 1; }
+    100% { transform: translate(var(--sx), var(--sy)) scale(1.35); opacity: 0; }
+  }
+
+  .ov-foot {
+    margin-top: 26px;
+    display: flex; gap: 10px;
+    opacity: 0;
+    transition: opacity .35s;
+  }
+  .ov-foot.on { opacity: 1; }
+  .ov-hint {
+    margin-top: 14px;
+    font-size: 13.5px; font-weight: 600; letter-spacing: 0;
+    color: rgba(255,255,255,.68);
+    height: 18px;
+  }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 3px solid var(--acc-ink);
+    outline-offset: 2px;
+  }
+  .ov button:focus-visible { outline-color: #fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<p id="announce" class="sr-only" role="status" aria-live="polite"></p>
+
+  <div class="blob b1" id="blob1"></div>
+  <div class="blob b2" id="blob2"></div>
+  <div class="blob b3"></div>
+
+  <div class="topbar">
+    <h1>요모 별풍판</h1>
+    <span class="en">YOMO'S STAR BOARD</span>
+    <span class="ver" id="verTag"></span>
+  </div>
+
+  <main class="stage">
+
+    <!-- setup -->
+    <div class="white-panel setup" id="setup">
+      <h2>별풍 &amp; 보너스 채우기</h2>
+      <ul class="sub">
+        <li><b>별풍 개수</b>와 <b>보너스 상품</b>을 하나씩 짝지어 추가하세요</li>
+        <li>보드에는 <b>적은 별풍부터</b> 자동으로 정렬돼요</li>
+        <li>한 화면에 <b>12개</b>(4 × 3)씩 보이고, 더 많으면 스크롤돼요</li>
+      </ul>
+
+      <div class="add-row">
+        <div class="field amt">
+          <label for="inAmt">별풍 개수</label>
+          <input id="inAmt" type="number" min="1" step="1" inputmode="numeric" placeholder="100">
+        </div>
+        <div class="field prize">
+          <label for="inPrize">보너스 상품</label>
+          <input id="inPrize" type="text" maxlength="40" placeholder="치킨 기프티콘">
+        </div>
+        <button class="btn" id="btnAdd">추가</button>
+      </div>
+      <div class="err" id="errMsg"></div>
+
+      <div class="list-head">
+        <span class="panel-title">LIST · 별풍 낮은 순</span>
+        <span class="count-chip">항목 <span class="num" id="liveCount">0</span> 개</span>
+      </div>
+      <ul class="list" id="setupList"></ul>
+
+      <div class="meta">
+        <button class="btn ghost sm" id="btnClear">전체 지우기</button>
+        <button class="btn" id="btnStart" disabled>보드 열기</button>
+      </div>
+    </div>
+
+    <!-- board -->
+    <div class="white-panel board hidden" id="board">
+      <div class="board-head">
+        <span class="board-title"><b>별풍선</b>을 눌러 보너스를 확인하세요!</span>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="btnReset">🔄 다시 덮기</button>
+        <button class="btn ghost sm" id="btnEdit">✏️ 목록 편집</button>
+      </div>
+      <div class="grid-wrap" id="gridWrap">
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- spotlight overlay -->
+  <div class="ov hidden" id="ov" role="dialog" aria-modal="true" aria-label="별풍 보너스 공개">
+    <div class="spot" id="spot">
+      <div class="stage3d" id="stage3d">
+        <div class="halo" id="halo"></div>
+        <div class="ring" id="ring"></div>
+        <div class="card3d" id="card3d">
+          <div class="face front">
+            <div class="rv-label">별풍선</div>
+            <svg class="star-big" viewBox="0 0 120 120" aria-hidden="true"><use href="#starballoon"></use></svg>
+            <div class="big-amt" id="ovAmt">0</div>
+          </div>
+          <div class="face back">
+            <div class="back-head" id="ovPrizeAmt"></div>
+            <div class="rv-label">BONUS</div>
+            <div class="prize-name" id="ovPrize"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ov-foot" id="ovFoot">
+      <button class="btn" id="btnCloseOv">확인</button>
+    </div>
+    <div class="ov-hint" id="ovHint"></div>
+  </div>
+
+  <!-- shared star-balloon art -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="starGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--acc)"></stop>
+        <stop offset="100%" stop-color="var(--acc-deep)"></stop>
+      </linearGradient>
+      <g id="starballoon">
+        <path d="M60 84 C60 92 56 96 56 102 C56 107 64 107 64 112"
+              fill="none" stroke="rgba(20,38,77,.35)" stroke-width="3" stroke-linecap="round"></path>
+        <polygon id="starPoly" points=""
+                 fill="url(#starGrad)" stroke="url(#starGrad)" stroke-width="13" stroke-linejoin="round"></polygon>
+        <ellipse cx="47" cy="38" rx="11" ry="7" fill="rgba(255,255,255,.72)" transform="rotate(-24 47 38)"></ellipse>
+        <circle cx="60" cy="86" r="4.6" fill="var(--acc-deep)"></circle>
+      </g>
+    </defs>
+  </svg>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- version ----------------
+   * Bump on every change: PATCH for fixes, MINOR for features, MAJOR for redesigns.
+   *
+   * 1.4.0  balloon bobs on the string when its tile is hovered or focused
+   * 1.3.0  WCAG 2.1 AA colour pass: acc-2 caps text-bearing fills, btnText re-derived
+   *        per theme against the true darkest pixel, opacity fades on small text
+   *        dropped, ink borders on tiles/buttons/inputs, readable placeholder
+   * 1.2.1  Pretendard replaces Gothic A1 (still too light), list label bottom-aligned
+   *        so it clears its list by the same 6px a field label clears its input
+   * 1.2.0  Gothic A1 replaces Noto Sans KR and the tracked-out 11px Korean labels
+   *        (readability), localStorage resume like raffle-board4.html, 다시 덮기 button
+   * 1.1.0  renamed 요모의 별풍판, board count chip dropped, revealed tiles lock and wear
+   *        their bonus, amount moved to a header on the back face, "개" dropped from the
+   *        cards, grid columns follow the item count so short lists don't sit in white
+   * 1.0.0  first build: 별풍 board (4×3 + scroll, low→high), one-at-a-time setup entry,
+   *        dreidel-spin spotlight reveal, 클로 가챠 5-colour random theme
+   */
+  var VERSION = "1.4.0";
+
+  /* ---------------- theme (random per open) ----------------
+     same palette as 클로 가챠 (claw-machine.html) — btnText sits on the
+     gradient's LIGHT end, ink is the accent dark enough for body text. */
+  /* acc2 = the dark end of any fill that carries small text. Running those
+     gradients all the way to `deep` put the label on a background no dark ink
+     could clear 4.5:1 against (red topped out at 4.09 even at pure black), so
+     text-bearing fills stop at acc2 = halfway to deep. btnText is then the
+     darkest hued ink that clears 4.6:1 on acc2 — i.e. on the true darkest
+     pixel under the glyphs, not an assumed midpoint. `deep` still runs the
+     decorative art (balloons, scrollbar, borders) at full strength. */
+  var THEMES = {
+    blue:   { main: "#3fd8ff", deep: "#0f9cd8", acc2: "#27baec", rgb: "63,216,255",  btnText: "#07455f", ink: "#095a7d" },
+    pink:   { main: "#ff6ec7", deep: "#e0349d", acc2: "#f051b2", rgb: "255,110,199", btnText: "#481132", ink: "#b31f76" },
+    yellow: { main: "#ffd93f", deep: "#eaa500", acc2: "#f5bf20", rgb: "255,217,63",  btnText: "#6c4c00", ink: "#785700" },
+    orange: { main: "#ff9f45", deep: "#f2711c", acc2: "#f98831", rgb: "255,159,69",  btnText: "#5e2c0b", ink: "#96460a" },
+    red:    { main: "#ff5566", deep: "#d61f3e", acc2: "#eb3a52", rgb: "255,85,102",  btnText: "#2b060c", ink: "#b0182f" }
+  };
+  var themeNames = Object.keys(THEMES);
+  var THEME = THEMES[themeNames[Math.floor(Math.random() * themeNames.length)]];
+  (function applyTheme() {
+    var rs = document.documentElement.style;
+    rs.setProperty("--acc", THEME.main);
+    rs.setProperty("--acc-deep", THEME.deep);
+    rs.setProperty("--acc-2", THEME.acc2);
+    rs.setProperty("--acc-rgb", THEME.rgb);
+    rs.setProperty("--btn-text", THEME.btnText);
+    rs.setProperty("--acc-ink", THEME.ink);
+    document.getElementById("blob1").style.background = THEME.main;
+    document.getElementById("blob2").style.background = THEME.deep;
+    document.getElementById("verTag").textContent = "v" + VERSION;
+  })();
+
+  var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function $(id) { return document.getElementById(id); }
+  function announce(msg) { $("announce").textContent = msg; }
+
+  /* ---------------- star-balloon art ----------------
+     5-point star drawn as a polygon with a fat round-joined stroke of the
+     same paint, which puffs the points out into a balloon silhouette. */
+  (function buildStar() {
+    var cx = 60, cy = 48, R = 40, r = 17.5, pts = [];
+    for (var i = 0; i < 10; i++) {
+      var rad = (i % 2 === 0) ? R : r;
+      var a = -Math.PI / 2 + i * Math.PI / 5;
+      pts.push((cx + rad * Math.cos(a)).toFixed(1) + "," + (cy + rad * Math.sin(a)).toFixed(1));
+    }
+    $("starPoly").setAttribute("points", pts.join(" "));
+  })();
+
+  /* ---------------- data ---------------- */
+  var items = [];   // { amt:Number, prize:String, opened:Boolean }
+
+  function sortItems() { items.sort(function (a, b) { return a.amt - b.amt; }); }
+  function fmt(n) { return n.toLocaleString("ko-KR"); }
+
+  /* ---------------- persistence ----------------
+     same shape as raffle-board4.html: one localStorage key, written on every
+     change, read back on open so the app returns exactly where it was left. */
+  var LS_KEY = "starboard_state";
+
+  function saveState() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        v: 1,
+        items: items,
+        started: !$("board").classList.contains("hidden")
+      }));
+    } catch (e) { /* private mode or full quota — the app still runs, just won't resume */ }
+  }
+
+  /* returns true when the board (not the setup panel) is where we left off */
+  function loadState() {
+    var raw, st;
+    try { raw = localStorage.getItem(LS_KEY); } catch (e) { return false; }
+    if (!raw) return false;
+    try { st = JSON.parse(raw); } catch (e) { return false; }
+    if (!st || !Array.isArray(st.items)) return false;
+
+    items = st.items
+      .filter(function (it) {
+        return it && isFinite(it.amt) && it.amt > 0 && typeof it.prize === "string" && it.prize;
+      })
+      .map(function (it) {
+        return { amt: Math.floor(it.amt), prize: it.prize, opened: !!it.opened };
+      });
+    sortItems();
+    return !!st.started && items.length > 0;
+  }
+
+  /* ---------------- setup ---------------- */
+  var inAmt = $("inAmt"), inPrize = $("inPrize");
+
+  function showErr(msg) { $("errMsg").textContent = msg || ""; }
+
+  function addItem() {
+    var raw = inAmt.value.trim();
+    var amt = Math.floor(Number(raw));
+    var prize = inPrize.value.trim();
+    if (!raw || !isFinite(amt) || amt <= 0) { showErr("별풍 개수를 1 이상으로 입력하세요."); inAmt.focus(); return; }
+    if (!prize) { showErr("보너스 상품을 입력하세요."); inPrize.focus(); return; }
+    items.push({ amt: amt, prize: prize, opened: false });
+    sortItems();
+    showErr("");
+    inAmt.value = "";
+    inPrize.value = "";
+    inAmt.focus();
+    renderSetup();
+    saveState();
+    announce(fmt(amt) + "개 · " + prize + " 추가됨. 현재 " + items.length + "개.");
+  }
+
+  function renderSetup() {
+    var ul = $("setupList");
+    ul.textContent = "";
+    items.forEach(function (it, i) {
+      var li = document.createElement("li");
+
+      var idx = document.createElement("span");
+      idx.className = "idx";
+      idx.textContent = i + 1;
+
+      var amt = document.createElement("span");
+      amt.className = "amt";
+      amt.textContent = fmt(it.amt);
+      var unit = document.createElement("small");
+      unit.textContent = "개";
+      amt.appendChild(unit);
+
+      var prize = document.createElement("span");
+      prize.className = "prize";
+      prize.textContent = it.prize;
+
+      var del = document.createElement("button");
+      del.className = "del";
+      del.type = "button";
+      del.textContent = "삭제";
+      del.setAttribute("aria-label", fmt(it.amt) + "개 " + it.prize + " 삭제");
+      del.addEventListener("click", function () {
+        items.splice(i, 1);
+        renderSetup();
+        saveState();
+        announce("삭제됨. 남은 항목 " + items.length + "개.");
+      });
+
+      li.appendChild(idx);
+      li.appendChild(amt);
+      li.appendChild(prize);
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+    $("liveCount").textContent = items.length;
+    $("btnStart").disabled = items.length === 0;
+  }
+
+  $("btnAdd").addEventListener("click", addItem);
+  [inAmt, inPrize].forEach(function (el) {
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); addItem(); }
+    });
+    el.addEventListener("input", function () { showErr(""); });
+  });
+  $("btnClear").addEventListener("click", function () {
+    if (!items.length) return;
+    if (!window.confirm("입력한 " + items.length + "개 항목을 모두 지울까요?")) return;
+    items = [];
+    renderSetup();
+    saveState();
+  });
+
+  /* ---------------- board ---------------- */
+  function renderBoard() {
+    var grid = $("grid");
+    grid.textContent = "";
+    /* ≤4 items shouldn't leave three empty columns of white */
+    var cols = Math.max(1, Math.min(4, items.length));
+    var scrolls = items.length > 12;
+    grid.style.gridTemplateColumns = "repeat(" + cols + ", var(--tile-w))";
+    grid.classList.toggle("scrolls", scrolls);
+
+    /* columns are a fixed width, so the box has to be sized to hold them exactly —
+       shrink-to-fit lets the vertical bar eat into them and raises a stray
+       horizontal one. 30 = side padding + room for the widest scrollbar. */
+    var rs = getComputedStyle(document.documentElement);
+    var base = cols * parseFloat(rs.getPropertyValue("--tile-w")) +
+               (cols - 1) * parseFloat(rs.getPropertyValue("--grid-gap"));
+    grid.style.width = (base + (scrolls ? 30 : 4)) + "px";
+
+    items.forEach(function (it) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "tile" + (it.opened ? " opened" : "");
+
+      if (it.opened) {
+        b.disabled = true;                       // one reveal per 별풍선
+        b.setAttribute("aria-label", "별풍선 " + fmt(it.amt) + "개 — 보너스 " + it.prize + " (확인 완료)");
+
+        var oa = document.createElement("span");
+        oa.className = "op-amt";
+        oa.textContent = fmt(it.amt);
+
+        var op = document.createElement("span");
+        op.className = "op-prize" + sizeClass(it.prize, "t-md", "t-sm", "t-xs");
+        op.textContent = it.prize;
+
+        b.appendChild(oa);
+        b.appendChild(op);
+      } else {
+        b.setAttribute("aria-label", "별풍선 " + fmt(it.amt) + "개 — 눌러서 보너스 확인");
+
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("class", "star-ico");
+        svg.setAttribute("viewBox", "0 0 120 120");
+        svg.setAttribute("aria-hidden", "true");
+        var use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+        use.setAttribute("href", "#starballoon");
+        svg.appendChild(use);
+
+        var amt = document.createElement("span");
+        amt.className = "tile-amt";
+        amt.textContent = fmt(it.amt);
+
+        b.appendChild(svg);
+        b.appendChild(amt);
+        b.addEventListener("click", function () { openSpot(it, b); });
+      }
+
+      grid.appendChild(b);
+    });
+    updateFade();
+  }
+
+  /* shared step-down for Korean prize names that outgrow their box */
+  function sizeClass(text, md, sm, xs) {
+    return text.length > 18 ? " " + xs : text.length > 12 ? " " + sm : text.length > 7 ? " " + md : "";
+  }
+
+  /* the "more below" fade would otherwise sit on top of the last row */
+  function updateFade() {
+    var g = $("grid");
+    $("gridWrap").classList.toggle("more", g.scrollHeight - g.scrollTop - g.clientHeight > 8);
+  }
+  $("grid").addEventListener("scroll", updateFade);
+
+  function showBoard() {
+    sortItems();
+    $("setup").classList.add("hidden");
+    $("board").classList.remove("hidden");
+    renderBoard();   // must run unhidden — the grid measures 0 while display:none
+    saveState();
+  }
+
+  $("btnStart").addEventListener("click", showBoard);
+  $("btnEdit").addEventListener("click", function () {
+    $("board").classList.add("hidden");
+    $("setup").classList.remove("hidden");
+    renderSetup();
+    saveState();
+    inAmt.focus();
+  });
+  $("btnReset").addEventListener("click", function () {
+    var n = items.filter(function (it) { return it.opened; }).length;
+    if (!n) { announce("아직 확인한 별풍선이 없어요."); return; }
+    if (!window.confirm("확인한 " + n + "개를 다시 덮을까요? 목록은 그대로 남아요.")) return;
+    items.forEach(function (it) { it.opened = false; });
+    renderBoard();
+    saveState();
+    announce(n + "개를 다시 덮었어요.");
+  });
+
+  /* ---------------- spotlight reveal ---------------- */
+  var ov = $("ov"), spot = $("spot"), card3d = $("card3d");
+  var halo = $("halo"), ring = $("ring"), ovFoot = $("ovFoot"), ovHint = $("ovHint");
+  var ovPrize = $("ovPrize");
+  var spinning = false, current = null, rafId = 0;
+
+  var SPIN_MS = 3400;
+  var MAX_LEAN = 15;   // degrees the "dreidel" leans over at its wobbliest
+  var PRECESS = 2.6;   // spin degrees per degree of lean precession
+
+  function fitPrize(text) {
+    ovPrize.className = "prize-name" + sizeClass(text, "f-md", "f-sm", "f-xs");
+  }
+
+  function openSpot(it, tile) {
+    if (spinning) return;
+    current = it;
+    spinning = true;
+
+    $("ovAmt").textContent = fmt(it.amt);
+    $("ovPrizeAmt").textContent = fmt(it.amt);
+    ovPrize.textContent = it.prize;
+    fitPrize(it.prize);
+    ovPrize.classList.remove("pop");
+    halo.classList.remove("on");
+    ring.classList.remove("go");
+    ovFoot.classList.remove("on");
+    ovHint.textContent = "";
+    card3d.style.transform = "rotateY(0deg)";
+
+    ov.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+
+    /* FLIP: start on top of the tile, then glide into the centre spotlight.
+       Measured only after .hidden comes off — getBoundingClientRect reads 0
+       while display:none. */
+    var from = tile.getBoundingClientRect();
+    var to = spot.getBoundingClientRect();
+    var sc = from.width / to.width;
+    var dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+    var dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+
+    spot.style.transition = "none";
+    spot.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + sc + ")";
+    void spot.offsetWidth;                    // flush before starting the transition
+    ov.classList.add("show");
+    spot.style.transition = "transform .55s cubic-bezier(.2,.85,.25,1)";
+    spot.style.transform = "none";
+
+    if (REDUCED) { land(); return; }
+    setTimeout(startSpin, 560);
+  }
+
+  function startSpin() {
+    if (!current) return;
+    ovHint.textContent = "돌아가는 중…";
+    var turns = 5 + Math.floor(Math.random() * 3);
+    var total = turns * 360 + 180;            // always settles on the back face
+    var t0 = performance.now();
+
+    (function frame(now) {
+      var t = Math.min(1, (now - t0) / SPIN_MS);
+      var e = 1 - Math.pow(1 - t, 3.4);       // fast start, long slow tail
+      var spin = total * e;
+
+      /* wobble builds as it slows, then settles flat — a dreidel losing steam */
+      var lean = MAX_LEAN * 4 * t * t * (1 - t);
+      var ph = spin * Math.PI / 180 / PRECESS;
+      var tx = lean * Math.cos(ph);
+      var tz = lean * Math.sin(ph);
+      card3d.style.transform =
+        "rotateZ(" + tz.toFixed(2) + "deg) rotateX(" + tx.toFixed(2) + "deg) rotateY(" + spin.toFixed(2) + "deg)";
+
+      if (t < 1) rafId = requestAnimationFrame(frame);
+      else land();
+    })(t0);
+  }
+
+  function land() {
+    card3d.style.transform = "rotateY(180deg)";
+    halo.classList.add("on");
+    ring.classList.remove("go");
+    void ring.offsetWidth;
+    ring.classList.add("go");
+    if (!REDUCED) sparkle();
+    setTimeout(function () { ovPrize.classList.add("pop"); }, REDUCED ? 0 : 120);
+    ovHint.textContent = "ESC 또는 확인을 눌러 보드로 돌아가요";
+    ovFoot.classList.add("on");
+    $("btnCloseOv").focus();
+    spinning = false;
+    if (current) {
+      current.opened = true;
+      saveState();
+      announce("별풍 " + fmt(current.amt) + "개 보너스: " + current.prize);
+    }
+  }
+
+  function sparkle() {
+    var glyphs = ["✨", "⭐", "🎉", "💫"];
+    for (var i = 0; i < 14; i++) {
+      var s = document.createElement("span");
+      s.className = "spark";
+      s.textContent = glyphs[i % glyphs.length];
+      var a = Math.random() * Math.PI * 2, d = 150 + Math.random() * 190;
+      s.style.setProperty("--sx", (Math.cos(a) * d).toFixed(0) + "px");
+      s.style.setProperty("--sy", (Math.sin(a) * d).toFixed(0) + "px");
+      s.style.animationDelay = (Math.random() * 0.22).toFixed(2) + "s";
+      $("stage3d").appendChild(s);
+      (function (el) { setTimeout(function () { el.remove(); }, 1600); })(s);
+    }
+  }
+
+  function closeSpot() {
+    if (spinning) return;
+    cancelAnimationFrame(rafId);
+    ov.classList.remove("show");
+    document.body.style.overflow = "";
+    setTimeout(function () {
+      ov.classList.add("hidden");
+      current = null;
+      renderBoard();
+    }, 340);
+  }
+
+  $("btnCloseOv").addEventListener("click", closeSpot);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !ov.classList.contains("hidden")) closeSpot();
+  });
+
+  var resume = loadState();
+  renderSetup();
+  if (resume) showBoard();
+  else inAmt.focus();
+})();
+</script>
+</body>
+</html>
