@@ -102,6 +102,7 @@
   .mode-card.stamp { background: linear-gradient(160deg, var(--butter), var(--peach)); }
   .mode-card.calc  { background: linear-gradient(160deg, var(--mint), var(--sky)); }
   .mode-card.star  { background: linear-gradient(160deg, var(--butter), var(--sky)); }
+  .mode-card.menu  { background: linear-gradient(160deg, var(--blossom), var(--lavender)); }
   .mode-card .emoji { font-size: 40px; display: block; margin-bottom: 8px; }
   .mode-card .icon { width: 46px; height: 46px; display: block; margin: 0 auto 8px; }
   .mode-card .card-title { display: block; font-size: 20px; font-weight: 800; }
@@ -294,6 +295,23 @@
           <span class="card-title">요모 별풍판</span>
           <span class="card-desc">별풍선을 눌러 보너스 상품 공개 · 팽이 회전 연출</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
+        <button class="mode-card menu" id="goMenu">
+          <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+            <rect x="9" y="5" width="30" height="38" rx="6" fill="#ffffff" stroke="#f7a8c8" stroke-width="2"/>
+            <rect x="9" y="5" width="30" height="10" rx="6" fill="#ec4d8b"/>
+            <rect x="9" y="11" width="30" height="4" fill="#ec4d8b"/>
+            <rect x="13.5" y="19.5" width="5" height="3" rx="1.5" fill="#ec4d8b"/>
+            <rect x="21" y="19.5" width="13" height="3" rx="1.5" fill="#c9b3c0"/>
+            <rect x="12.5" y="26" width="23" height="6" rx="3" fill="#fde6ee" stroke="#f7a8c8" stroke-width="1.2"/>
+            <rect x="15" y="27.5" width="5" height="3" rx="1.5" fill="#ec4d8b"/>
+            <rect x="22.5" y="27.5" width="10" height="3" rx="1.5" fill="#6b5560"/>
+            <rect x="13.5" y="35.5" width="5" height="3" rx="1.5" fill="#ec4d8b"/>
+            <rect x="21" y="35.5" width="13" height="3" rx="1.5" fill="#c9b3c0"/>
+            <path d="M42 22 L44.5 25 L42 28" fill="none" stroke="#c25c87" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 43 25)"/>
+          </svg>
+          <span class="card-title">시그 메뉴</span>
+          <span class="card-desc">회전 메뉴판 · 구글 시트 연동 · 속도 조절</span><span class="sr-only"> (새 창에서 열립니다)</span>
+        </button>
       </div>
     </div>
   </main>
@@ -347,6 +365,9 @@
   });
   document.getElementById("goCalc").addEventListener("click", function () {
     openApp("donation-calc.html", "donationCalc", 1215, 880, null, "요모 계산기");
+  });
+  document.getElementById("goMenu").addEventListener("click", function () {
+    openApp("menu-upgrade.html", "sigMenu", 480, 865, null, "시그 메뉴");
   });
 </script>
 </body>
