@@ -490,6 +490,7 @@
               <div class="food-name" id="foodName"></div>
             </div>
             <div class="rv-btns invisible" id="rvBtns">
+              <button class="btn ghost" id="btnUndo" title="캡슐을 기계로 되돌려요 (이번 뽑기 무효)">무르기</button>
               <button class="btn ghost" id="btnReroll">다시 뽑기</button>
               <button class="btn" id="btnConfirm">이걸로 확정</button>
             </div>
@@ -537,6 +538,8 @@
   /* ---------------- version ----------------
    * Bump on every change: PATCH for fixes, MINOR for features, MAJOR for redesigns.
    *
+   * 1.2.0  무르기 (undo) button on the reveal: the capsule rains back into the machine
+   *        recolored, item not consumed — distinct from 다시 뽑기 which discards it
    * 1.1.0  generalized: 먹방 가챠 → 클로 가챠 (CLAW GACHA); all food-specific copy replaced
    *        with neutral item/prize wording so it works for menus, prizes, penalties, missions
    * 1.0.1  counter no longer bounces up while the prize ball falls (excluded through grab→shaft→door)
@@ -553,7 +556,7 @@
    * 0.2.0  neon arcade revamp, 920×800 cabinet, bigger pit
    * 0.1.0  first build: pastel claw machine, mystery capsules, reroll-discards rule
    */
-  var VERSION = "1.1.0";
+  var VERSION = "1.2.0";
 
   /* ---------------- theme (random per open) ---------------- */
   var THEMES = {
@@ -604,7 +607,7 @@
   var foodInput = $("foodInput"), liveCount = $("liveCount"), btnStart = $("btnStart");
   var revealOv = $("revealOv"), capEl = $("capEl"), capStage = $("capStage"), foodName = $("foodName");
   var halo1 = $("halo1"), ring1 = $("ring1");
-  var rvBtns = $("rvBtns"), rvNote = $("rvNote"), btnReroll = $("btnReroll"), btnConfirm = $("btnConfirm");
+  var rvBtns = $("rvBtns"), rvNote = $("rvNote"), btnReroll = $("btnReroll"), btnConfirm = $("btnConfirm"), btnUndo = $("btnUndo");
   var resultOv = $("resultOv"), resultName = $("resultName");
   function announceClaw(msg) {
     var live = document.getElementById("clawAnnounce");
@@ -644,6 +647,7 @@
     miss:   function () { tone(330, 300, 0.18, "triangle", 0.14); tone(280, 200, 0.35, "triangle", 0.14, 0.2); },
     pop:    function () { tone(600, 120, 0.12, "square", 0.2); tone(1300, 900, 0.1, "sine", 0.12); },
     deny:   function () { tone(190, 140, 0.09, "square", 0.08); },
+    undo:   function () { tone(720, 260, 0.28, "sine", 0.1); tone(360, 130, 0.2, "triangle", 0.08, 0.1); },
     shuffle:function () {
       for (var i = 0; i < 8; i++) tone(220 + Math.random() * 300, 180, 0.05, "square", 0.07, i * 0.04);
       tone(120, 300, 0.35, "sawtooth", 0.06);
@@ -748,6 +752,7 @@
   var phaseT = 0;
   var swing = { a: 0, v: 0 };
   var releaseWatch = null;
+  var lastBall = null;      // the capsule currently shown in the reveal (for 무르기)
   var moveTickT = 0;
   var lightsT = 0;
   var shuffleCd = 0;
@@ -780,6 +785,7 @@
     ballR = buildWorld(foods);
     pulls = [];
     grabbed = null;
+    lastBall = null;
     clawX = AIM_HOME();
     tipY = TIP_IDLE;
     prongOpen = 1;
@@ -1025,6 +1031,7 @@
   function captureBall(b) {
     Matter.Composite.remove(world, b);
     balls.splice(balls.indexOf(b), 1);
+    lastBall = b;
     openReveal(b.plugin.food, b.plugin.color);
   }
 
@@ -1123,13 +1130,40 @@
 
   btnReroll.addEventListener("click", function () {
     if (phase !== "reveal") return;
+    lastBall = null;
     revealOv.classList.add("hidden");
     prongOpen = 1;
     setPhase("return");
   });
 
+  // 무르기: the pull never happened — the capsule rains back into the machine
+  // (recolored so nobody can track which one it was) and the item is not consumed
+  btnUndo.addEventListener("click", function () {
+    if (phase !== "reveal" || !lastBall) return;
+    var b = lastBall;
+    lastBall = null;
+    pulls.pop();
+    b.plugin.captured = false;
+    b.plugin.color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    var r = ballR;
+    Matter.Body.setPosition(b, {
+      x: CHUTE.wallX + 30 + r + Math.random() * (TANK.right - CHUTE.wallX - 60 - r * 2),
+      y: TANK.top - 40
+    });
+    Matter.Body.setVelocity(b, { x: 0, y: 2 });
+    Matter.Body.setAngularVelocity(b, 0);
+    Matter.Composite.add(world, b);
+    balls.push(b);
+    revealOv.classList.add("hidden");
+    prongOpen = 1;
+    setPhase("return");
+    announceClaw("무르기: 캡슐이 기계로 돌아갔습니다");
+    sfx.undo();
+  });
+
   btnConfirm.addEventListener("click", function () {
     if (phase !== "reveal") return;
+    lastBall = null;
     var last = pulls[pulls.length - 1];
     last.kept = true;
     revealOv.classList.add("hidden");
