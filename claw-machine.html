@@ -56,7 +56,7 @@
 
   .topbar {
     width: 100%;
-    max-width: 1230px;
+    max-width: 1400px;
     display: flex;
     align-items: baseline;
     gap: 14px;
@@ -85,7 +85,8 @@
     opacity: 1;              /* .75 knocked this down to 3.1:1 */
   }
 
-  .stage { width: 100%; max-width: 1230px; flex: 1; display: flex; justify-content: center; z-index: 1; }
+  /* wide enough for the machine + a 2-column prize sign side by side */
+  .stage { width: 100%; max-width: 1400px; flex: 1; display: flex; justify-content: center; z-index: 1; }
 
   .hidden { display: none !important; }
   .invisible { visibility: hidden !important; }
@@ -198,24 +199,34 @@
   }
   canvas { display: block; border-radius: 26px; }
 
-  .side { width: 270px; flex: none; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
-  .side .panel-title {
-    font-size: 11px;
-    font-weight: 900;
-    color: var(--acc-ink);
-    letter-spacing: 3px;
-    margin-bottom: 8px;
+  /* machine + prize sign sit together (the part that goes on stream) */
+  .game { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  /* flex-start so the prize sign hugs its contents instead of stretching to the machine */
+  .machine-row { display: flex; gap: 16px; align-items: flex-start; }
+
+  /* ---------- operator controls (kept out of the stream crop) ---------- */
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    background: var(--card);
+    border: 1.5px solid rgba(var(--acc-rgb), .3);
+    border-radius: 18px;
+    padding: 12px 20px;
+    box-shadow: 0 8px 20px rgba(96,125,165,.18);
   }
-  .keys {
-    background: #f4f8fc;
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px 16px;
-    font-size: 13.5px;
-    line-height: 2.2;
-    color: var(--txt);
-  }
-  .keys kbd {
+  .cb-keys { font-size: 13px; color: var(--txt-soft); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .cb-sep { width: 1px; height: 14px; background: var(--line); display: inline-block; margin: 0 5px; }
+  .cb-btns { display: flex; gap: 8px; }
+  /* fixed widths: these labels change with state (ON/OFF, 소리/음소거) and would
+     otherwise resize themselves and the whole bar */
+  .cb-btns .btn { padding: 10px 0; font-size: 13.5px; text-align: center; }
+  .cb-btns #btnLaser { width: 152px; }
+  .cb-btns #btnMute { width: 104px; }
+  .cb-btns #btnHome { width: 124px; }
+  .keys kbd, .cb-keys kbd {
     background: var(--navy);
     color: var(--acc);
     border-radius: 7px;
@@ -225,8 +236,74 @@
     font-size: 12px;
     box-shadow: 0 2px 0 #060d1d;
   }
-  .side .foot { display: flex; gap: 8px; }
-  .side .foot .btn { flex: 1; padding: 11px 0; font-size: 13.5px; }
+  .btn.toggle[aria-pressed="true"] {
+    background: linear-gradient(165deg, var(--acc), var(--acc-deep));
+    color: var(--btn-text);
+    box-shadow: 0 0 18px rgba(var(--acc-rgb), .4), inset 0 2px 0 rgba(255,255,255,.4);
+  }
+
+  /* ---------- prize list sign (one container, flows into a 2nd column) ---------- */
+  .legend-sign {
+    width: 310px;
+    flex: none;
+    max-height: 800px;      /* never taller than the machine; list scrolls past that */
+    display: flex;
+    flex-direction: column;
+    padding: 22px 24px;
+    border-radius: 26px;
+    background: linear-gradient(180deg, #ffffff, #eaf1f9);
+    border: 2px solid rgba(var(--acc-rgb), .5);
+    box-shadow: 0 0 28px rgba(var(--acc-rgb), .28), 0 20px 40px rgba(96,125,165,.3), inset 0 2px 0 #fff;
+    overflow: hidden;
+    transition: width .2s ease;
+  }
+  .legend-sign.two-col { width: 430px; }
+
+  .legend-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid rgba(var(--acc-rgb), .4);
+  }
+  .legend-title {
+    font-family: "Jua", sans-serif;
+    font-weight: 400;
+    font-size: 23px;
+    letter-spacing: .5px;
+    color: var(--navy);
+  }
+  .legend-total { font-size: 13px; font-weight: 900; color: var(--acc-ink); white-space: nowrap; }
+  .legend-total b {
+    font-family: "Jua", sans-serif;
+    font-weight: 400;
+    font-size: 25px;
+    margin-right: 2px;
+  }
+
+  .legend { list-style: none; flex: 1; min-height: 0; overflow-y: auto; column-gap: 22px; }
+  .legend-sign.two-col .legend { column-count: 2; }
+  .legend li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 6px 0;
+    border-bottom: 1px dashed #dde6f0;
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+  }
+  .legend .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend .n { flex: none; font-weight: 900; font-size: 14px; color: var(--acc-ink); }
+  .legend li.out { opacity: .38; }
+  .legend li.out .nm { text-decoration: line-through; }
+  .legend li.out .n { color: var(--txt-soft); }
+  .legend::-webkit-scrollbar { width: 6px; }
+  .legend::-webkit-scrollbar-thumb { background: rgba(var(--acc-rgb), .45); border-radius: 3px; }
 
   /* ---------- reveal / result overlays ---------- */
   .ov {
@@ -473,6 +550,7 @@
 
     <!-- game -->
     <div class="game hidden" id="game">
+      <div class="machine-row">
       <div class="machine-wrap">
         <canvas id="cv" width="920" height="800"></canvas>
 
@@ -513,19 +591,30 @@
         </div>
       </div>
 
-      <!-- side panel -->
-      <div class="white-panel side">
-        <div>
-          <div class="panel-title">CONTROLS · 조작법</div>
-          <div class="keys">
-            <kbd>←</kbd> <kbd>→</kbd> 집게 이동<br>
-            <kbd>↓</kbd> 또는 <kbd>SPACE</kbd> 집게 내리기
+        <!-- prize list sign — sits beside the machine so it lands in the stream capture -->
+        <aside class="legend-sign" id="legendSign">
+          <div class="legend-head">
+            <span class="legend-title">남은 항목</span>
+            <span class="legend-total"><b id="legendTotal">0</b>개</span>
           </div>
-        </div>
-        <div class="foot">
+          <ul class="legend" id="legendList"></ul>
+        </aside>
+      </div>
+
+      <!-- operator controls — kept below the machine, outside the stream crop -->
+      <div class="controls-bar">
+        <span class="cb-keys">
+          <kbd>←</kbd><kbd>→</kbd> 집게 이동
+          <span class="cb-sep"></span>
+          <kbd>↓</kbd>/<kbd>SPACE</kbd> 집게 내리기
+          <span class="cb-sep"></span>
+          <kbd>L</kbd> 레이저
+        </span>
+        <span class="cb-btns">
+          <button class="btn ghost toggle" id="btnLaser" aria-pressed="true">조준 레이저</button>
           <button class="btn ghost" id="btnMute">🔊 소리</button>
           <button class="btn ghost" id="btnHome">🏠 처음으로</button>
-        </div>
+        </span>
       </div>
     </div>
   </main>
@@ -538,6 +627,13 @@
   /* ---------------- version ----------------
    * Bump on every change: PATCH for fixes, MINOR for features, MAJOR for redesigns.
    *
+   * 1.4.1  control-bar buttons given fixed widths (ON/OFF + 소리/음소거 labels were
+   *        resizing themselves and the whole bar); prize sign height now hugs its items
+   * 1.4.0  prize-list sign moved beside the machine (stream-visible) as ONE container that
+   *        flows into a 2nd column past 11 items; operator controls moved to a bar below
+   *        the machine so a stream crop can exclude them; popup widened to 1440x1040
+   * 1.3.0  aiming laser w/ reticle (toggle: bar button or L, remembered), capsule palette
+   *        cut to 5 clearly distinct hues, live 남은 항목 legend
    * 1.2.0  무르기 (undo) button on the reveal: the capsule rains back into the machine
    *        recolored, item not consumed — distinct from 다시 뽑기 which discards it
    * 1.1.0  generalized: 먹방 가챠 → 클로 가챠 (CLAW GACHA); all food-specific copy replaced
@@ -556,7 +652,7 @@
    * 0.2.0  neon arcade revamp, 920×800 cabinet, bigger pit
    * 0.1.0  first build: pastel claw machine, mystery capsules, reroll-discards rule
    */
-  var VERSION = "1.2.0";
+  var VERSION = "1.4.1";
 
   /* ---------------- theme (random per open) ---------------- */
   var THEMES = {
@@ -599,7 +695,9 @@
   var SHUFFLE_BTN = { x: W / 2, y: BASE_MID, r: 36 };
   var SHUFFLE_CD_MAX = 2.2;
 
-  var PALETTE = ["#ff5fa2", "#ffd166", "#7cf29c", "#5fd0ff", "#c792ff", "#ff8f5f", "#f9f871", "#6df2e2"];
+  // five clearly separated hues (~70° apart) — the old 8-colour set had
+  // gold/yellow/orange and mint/cyan/blue reading as the same capsule on stream
+  var PALETTE = ["#ff4f8b", "#ffcf33", "#3fbf63", "#3d8bff", "#a45cff"];
 
   /* ---------------- dom ---------------- */
   var $ = function (id) { return document.getElementById(id); };
@@ -609,6 +707,8 @@
   var halo1 = $("halo1"), ring1 = $("ring1");
   var rvBtns = $("rvBtns"), rvNote = $("rvNote"), btnReroll = $("btnReroll"), btnConfirm = $("btnConfirm"), btnUndo = $("btnUndo");
   var resultOv = $("resultOv"), resultName = $("resultName");
+  var legendList = $("legendList"), btnLaser = $("btnLaser");
+  var legendSign = $("legendSign"), legendTotal = $("legendTotal");
   function announceClaw(msg) {
     var live = document.getElementById("clawAnnounce");
     if (live) live.textContent = msg;
@@ -715,6 +815,9 @@
       Matter.Bodies.rectangle(CHUTE.cx, PRIZE_Y + thick / 2, 150, thick, opts)
     ]);
 
+    legendOrder = [];
+    foods.forEach(function (f) { if (legendOrder.indexOf(f) < 0) legendOrder.push(f); });
+
     var r = ballRadius(foods.length);
     var shuffled = foods.slice();
     for (var i = shuffled.length - 1; i > 0; i--) {
@@ -790,6 +893,7 @@
     tipY = TIP_IDLE;
     prongOpen = 1;
     shuffleCd = 0;
+    renderLegend();
     setup.classList.add("hidden");
     game.classList.remove("hidden");
     setPhase("aim");
@@ -799,6 +903,51 @@
   function goHome() { location.reload(); }
   $("btnHome").addEventListener("click", goHome);
   $("btnHome2").addEventListener("click", goHome);
+
+  /* ---------------- aiming laser (toggle) ---------------- */
+  var laserOn = localStorage.getItem("claw.laser") !== "0";   // on unless turned off
+  function paintLaser() {
+    btnLaser.setAttribute("aria-pressed", laserOn ? "true" : "false");
+    btnLaser.textContent = laserOn ? "조준 레이저 ON" : "조준 레이저 OFF";
+  }
+  function toggleLaser() {
+    laserOn = !laserOn;
+    localStorage.setItem("claw.laser", laserOn ? "1" : "0");
+    paintLaser();
+    announceClaw(laserOn ? "조준 레이저 켜짐" : "조준 레이저 꺼짐");
+  }
+  paintLaser();
+  btnLaser.addEventListener("click", toggleLaser);
+
+  /* ---------------- live item legend ---------------- */
+  var legendOrder = [];   // unique item names, in the order they were typed
+  var LEGEND_COL_AT = 11; // more rows than this and the list flows into a 2nd column
+  function renderLegend() {
+    if (!legendList) return;
+    var counts = {}, total = 0;
+    for (var i = 0; i < balls.length; i++) {
+      var n = balls[i].plugin.food;
+      counts[n] = (counts[n] || 0) + 1;
+      total++;
+    }
+    if (legendTotal) legendTotal.textContent = total;
+    if (legendSign) legendSign.classList.toggle("two-col", legendOrder.length > LEGEND_COL_AT);
+    legendList.textContent = "";
+    legendOrder.forEach(function (name) {
+      var c = counts[name] || 0;
+      var li = document.createElement("li");
+      if (!c) li.className = "out";
+      var nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = name;            // user input — never innerHTML
+      var num = document.createElement("span");
+      num.className = "n";
+      num.textContent = c + "개";
+      li.appendChild(nm);
+      li.appendChild(num);
+      legendList.appendChild(li);
+    });
+  }
 
   var btnMute = $("btnMute");
   function paintMute() { btnMute.textContent = muted ? "🔇 음소거" : "🔊 소리"; }
@@ -874,6 +1023,7 @@
       e.preventDefault();
       if (phase === "aim") startDrop();
     }
+    if (e.key === "l" || e.key === "L") { e.preventDefault(); toggleLaser(); }
   });
   document.addEventListener("keyup", function (e) {
     if (e.key === "ArrowLeft") keys.left = false;
@@ -1032,6 +1182,7 @@
     Matter.Composite.remove(world, b);
     balls.splice(balls.indexOf(b), 1);
     lastBall = b;
+    renderLegend();
     openReveal(b.plugin.food, b.plugin.color);
   }
 
@@ -1154,6 +1305,7 @@
     Matter.Body.setAngularVelocity(b, 0);
     Matter.Composite.add(world, b);
     balls.push(b);
+    renderLegend();
     revealOv.classList.add("hidden");
     prongOpen = 1;
     setPhase("return");
@@ -1411,6 +1563,7 @@
     ctx.strokeStyle = "rgba(60,80,110,.35)";
     ctx.stroke();
 
+    drawLaser();
     drawClaw();
 
     // ---- glass reflections + sticker stars ----
@@ -1502,6 +1655,68 @@
     var out = "rgb(" + r + "," + g + "," + bl + ")";
     shadeCache[key] = out;
     return out;
+  }
+
+  // the capsule the claw would close on if it dropped right now: the highest
+  // ball under the tip, matching tryGrabAt()'s horizontal catch window
+  function laserTarget() {
+    var best = null;
+    for (var i = 0; i < balls.length; i++) {
+      var b = balls[i];
+      if (b === grabbed || b.plugin.captured) continue;
+      if (Math.abs(b.position.x - clawX) < ballR * 0.85 && b.position.y > tipY) {
+        if (!best || b.position.y < best.position.y) best = b;
+      }
+    }
+    return best;
+  }
+
+  function drawLaser() {
+    if (!laserOn || phase !== "aim") return;
+    var t = laserTarget();
+    var endY = t ? t.position.y : TANK.floor - 6;
+    var pulse = 0.65 + 0.35 * Math.sin(lightsT * 7);
+
+    ctx.save();
+    // beam
+    glow("#ff2d3d", 8);
+    ctx.strokeStyle = "rgba(255,45,61," + (0.35 + pulse * 0.3) + ")";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 6]);
+    ctx.lineDashOffset = -(lightsT * 60) % 13;
+    ctx.beginPath();
+    ctx.moveTo(clawX, tipY + 4);
+    ctx.lineTo(clawX, endY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (t) {
+      // reticle around the capsule that will be grabbed
+      var rr2 = t.circleRadius + 5;
+      ctx.strokeStyle = "rgba(255,45,61," + (0.7 + pulse * 0.3) + ")";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(t.position.x, t.position.y, rr2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      for (var k = 0; k < 4; k++) {
+        var a = k * Math.PI / 2;
+        var cx = t.position.x + Math.cos(a) * rr2, cy = t.position.y + Math.sin(a) * rr2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5);
+        ctx.stroke();
+      }
+    } else {
+      // no capsule under the claw — flat dot on the pit floor
+      ctx.fillStyle = "rgba(255,45,61," + (0.5 + pulse * 0.4) + ")";
+      ctx.beginPath();
+      ctx.ellipse(clawX, TANK.floor - 6, 9, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    noGlow();
+    ctx.restore();
   }
 
   function drawClaw() {
