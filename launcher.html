@@ -103,6 +103,7 @@
   .mode-card.calc  { background: linear-gradient(160deg, var(--mint), var(--sky)); }
   .mode-card.star  { background: linear-gradient(160deg, var(--butter), var(--sky)); }
   .mode-card.menu  { background: linear-gradient(160deg, var(--blossom), var(--lavender)); }
+  .mode-card.tq    { background: linear-gradient(160deg, var(--lavender), var(--sky)); }
   .mode-card .emoji { font-size: 40px; display: block; margin-bottom: 8px; }
   .mode-card .icon { width: 46px; height: 46px; display: block; margin: 0 auto 8px; }
   .mode-card .card-title { display: block; font-size: 20px; font-weight: 800; }
@@ -312,6 +313,19 @@
           <span class="card-title">시그 메뉴</span>
           <span class="card-desc">회전 메뉴판 · 구글 시트 연동 · 속도 조절</span><span class="sr-only"> (새 창에서 열립니다)</span>
         </button>
+        <button class="mode-card tq" id="goTenQ">
+          <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M8 9 Q8 5 12 5 L36 5 Q40 5 40 9 L40 27 Q40 31 36 31 L21 31 L13 38 L14 31 L12 31 Q8 31 8 27 Z"
+              fill="#ffffff" stroke="#a9b8e6" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M19.5 14 Q19.5 10 24 10 Q28.5 10 28.5 14 Q28.5 16.6 25.6 17.8 Q24 18.5 24 20.6"
+              fill="none" stroke="#7b7ff0" stroke-width="2.6" stroke-linecap="round"/>
+            <circle cx="24" cy="25" r="1.7" fill="#7b7ff0"/>
+            <circle cx="37" cy="36" r="8" fill="#f7a8c8" stroke="#c25c87" stroke-width="1.4"/>
+            <text x="37" y="39.2" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff" font-family="Segoe UI, sans-serif">10</text>
+          </svg>
+          <span class="card-title">열고개</span>
+          <span class="card-desc">시청자가 낸 단어를 10번 안에 맞히기 · AI 심판</span><span class="sr-only"> (새 창에서 열립니다)</span>
+        </button>
       </div>
     </div>
   </main>
@@ -355,7 +369,7 @@
     openApp("kbo-bracket.html", "kboBracket", 1600, 950, null, "KBO 브래킷 예측");
   });
   document.getElementById("goClaw").addEventListener("click", function () {
-    openApp("claw-machine.html", "clawMachine", 1260, 960, null, "클로 가챠");
+    openApp("claw-machine.html", "clawMachine", 1440, 1040, null, "클로 가챠");
   });
   document.getElementById("goStamp").addEventListener("click", function () {
     openApp("stamp-card.html", "stampCard", 700, 460, null, "노래 도장판");
@@ -368,6 +382,10 @@
   });
   document.getElementById("goMenu").addEventListener("click", function () {
     openApp("menu-upgrade.html", "sigMenu", 480, 865, null, "시그 메뉴");
+  });
+  document.getElementById("goTenQ").addEventListener("click", function () {
+    /* 시청자 링크가 이 주소에서 만들어지므로 로컬 파일이 아니라 배포된 Cloudflare Pages 주소로 연다 */
+    openApp("https://yeolgogae.pages.dev/host.html", "tenQuestions", 760, 900, null, "열고개");
   });
 </script>
 </body>
