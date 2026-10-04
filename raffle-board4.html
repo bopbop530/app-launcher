@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="version" content="2.4.0" />
+    <meta name="version" content="2.6.0" />
+    <!-- v2.5.0 2026-10-02 현상 번호 toggle (shown on stream as 잭팟, gold tile);
+         ticker strikes through prizes once their tile is revealed.
+         v2.5.1 잭팟 last in ticker, no emoji; shimmer -> still gold + light sweep.
+         v2.6.0 잭팟 plays its own sound (jackpot.wav). -->
+
     <!-- v2.4.0 2026-07-29 WCAG 2.1 AA: tiles are keyboard-operable <button>s,
          lang=ko, contrast-corrected inks, live region, focus rings,
          labelled icon buttons/select.
@@ -146,6 +151,54 @@
         resize: vertical;
       }
 
+      /* --- 현상 번호 on/off switch --- */
+      .controls label.toggle-row {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+      }
+      .toggle-row small {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 400;
+      }
+      /* extra specificity so the generic .controls input / :focus rules don't win */
+      .controls .toggle-row input.switch {
+        appearance: none;
+        -webkit-appearance: none;
+        flex: none;
+        position: relative;
+        width: 46px;
+        height: 26px;
+        padding: 0;
+        margin: 0;
+        border: none;
+        border-radius: 13px;
+        background: #8c8c8c; /* 3.4:1 track, WCAG 1.4.11 */
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .controls .toggle-row input.switch::before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s;
+      }
+      .controls .toggle-row input.switch:checked {
+        background: #b07d00; /* 3.6:1 */
+      }
+      .controls .toggle-row input.switch:checked::before {
+        transform: translateX(20px);
+      }
+
       button#startButton {
         background: linear-gradient(135deg, #ffb7b2, #ff9aa2);
         color: var(--btn-ink);
@@ -228,6 +281,49 @@
         font-size: 36px;
       }
 
+      /* --- 현상 번호 (shown as 잭팟): gold, glowing, with a light sweep --- */
+      .tile.bounty {
+        position: relative;
+        z-index: 1;
+        overflow: hidden; /* clips the sweep; the glow (box-shadow) is not clipped */
+        background: linear-gradient(145deg, #ffe08a 0%, #ffc93c 55%, #f5b301 100%);
+        color: #4a3200; /* >= 6.5:1 across the gold */
+        border-color: #e0a800;
+        box-shadow:
+          0 0 0 3px rgba(240, 180, 0, 0.35),
+          0 0 18px 4px rgba(255, 200, 40, 0.75);
+        font-size: 22px;
+      }
+      /* The gold itself stays still; only this soft highlight band crosses it,
+         then rests -- a seamless loop (no sliding seam / restart jump). */
+      .tile.bounty::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          115deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.7) 50%,
+          transparent 70%
+        );
+        transform: translateX(-130%);
+        animation: bounty-shine 3.2s ease-in-out infinite;
+        pointer-events: none;
+      }
+      @keyframes bounty-shine {
+        0% { transform: translateX(-130%); }
+        40%, 100% { transform: translateX(130%); }
+      }
+      /* one-shot pop, only when revealed live (not on reload) */
+      .tile.bounty.bounty-reveal {
+        animation: bounty-pop 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      @keyframes bounty-pop {
+        0% { transform: scale(0.6) rotate(-8deg); }
+        55% { transform: scale(1.3) rotate(4deg); }
+        100% { transform: translateY(2px) scale(1); }
+      }
+
       /* --- Ticker --- */
       .ticker {
         width: 100%;
@@ -243,7 +339,8 @@
         border: 2px solid var(--main-pink);
         margin-bottom: 50px;
       }
-      .ticker span {
+      /* direct child only -- the per-prize spans inside must stay inline */
+      .ticker > span {
         position: absolute;
         white-space: nowrap;
         will-change: transform;
@@ -251,6 +348,17 @@
         font-weight: 700;
         font-size: 24px;
         padding: 0 10px;
+      }
+      .ticker-item.bounty {
+        color: #9a6200; /* 5.1:1 on white */
+      }
+      /* Won prizes: colour + strike only, never width-changing text, so the
+         running scroll animation (sized from offsetWidth) stays correct. */
+      .ticker-item.won {
+        color: #767676; /* 4.5:1 on white */
+        text-decoration: line-through;
+        text-decoration-thickness: 3px;
+        text-decoration-color: var(--tile-num);
       }
 
       /* --- Preset panel (sits centered under the controls during setup) --- */
@@ -424,6 +532,11 @@
       // Initialize the communication channel
       const bc = new BroadcastChannel("bingo_channel");
 
+      // 현상 번호: stored in the board as a sentinel so it can never collide
+      // with a typed prize name; viewers only ever see BOUNTY_LABEL.
+      const BOUNTY = "__BOUNTY__";
+      const BOUNTY_LABEL = "잭팟";
+
       // --- LAUNCHER (PARENT WINDOW) ---
       // Default view with no ?role param: show only a "시작" button.
       // Clicking it opens the full raffle board in a child window.
@@ -470,9 +583,10 @@
             values.forEach((prize, index) => {
               if (prize !== "꽝") {
                 hasPrizes = true;
+                const isBounty = prize === BOUNTY;
                 ul.innerHTML += `<li style="border-bottom: 2px dashed #eee; padding: 8px 0; display:flex; justify-content:space-between;">
-                              <span style="font-weight:bold; color:#ff9aa2;">#${index + 1}</span> 
-                              <span style="color:#2e7d32; font-weight:bold;">${prize}</span>
+                              <span style="font-weight:bold; color:#ff9aa2;">#${index + 1}</span>
+                              <span style="color:${isBounty ? "#9a6200" : "#2e7d32"}; font-weight:bold;">${isBounty ? `✨${BOUNTY_LABEL}✨ (현상 번호)` : prize}</span>
                           </li>`;
               }
             });
@@ -514,6 +628,13 @@
           placeholder="e.g. iPhone, Gift Card, $50"
         ></textarea>
       </label>
+      <label class="toggle-row">
+        <span>
+          현상 번호
+          <small>켜면 특별 당첨 번호 1개가 추가됩니다</small>
+        </span>
+        <input type="checkbox" id="bountyToggle" class="switch" role="switch" />
+      </label>
       <button id="startButton" onclick="handleButtonClick()">Start</button>
     </main>
 
@@ -546,8 +667,10 @@
     <script>
       const winAudio = new Audio("win.wav");
       const failAudio = new Audio("fail.wav");
+      const jackpotAudio = new Audio("jackpot.wav");
       winAudio.volume = 0.5;
       failAudio.volume = 0.5;
+      jackpotAudio.volume = 0.5; // measured within ~1 dB of win.wav
       function playSound(audioObj) {
         if (!audioObj) return;
         const sound = audioObj.cloneNode();
@@ -567,7 +690,12 @@
         prizeTicker = document.getElementById("prizeTicker"),
         presetPanel = document.querySelector(".preset-panel"),
         controlsPanel = document.querySelector(".controls"),
-        resetBtn = document.getElementById("resetBtn");
+        resetBtn = document.getElementById("resetBtn"),
+        bountyToggle = document.getElementById("bountyToggle");
+
+      bountyToggle.addEventListener("change", () =>
+        localStorage.setItem("bingo_bounty", bountyToggle.checked ? "1" : "0"),
+      );
 
       // Handle requests from Admin window if it opened AFTER the board was generated
       bc.onmessage = (event) => {
@@ -598,6 +726,7 @@
           lastPresetName = localStorage.getItem("bingo_last_preset");
         const allPresets = getPresets();
         if (savedTotal) totalInput.value = savedTotal;
+        bountyToggle.checked = localStorage.getItem("bingo_bounty") === "1";
         if (lastPresetName && allPresets[lastPresetName])
           prizeInput.value = allPresets[lastPresetName];
         else if (savedPrizes) prizeInput.value = savedPrizes;
@@ -618,14 +747,17 @@
           .filter((p) => p.length > 0);
       }
 
+      function showLiveUI() {
+        controlsPanel.style.display = "none";
+        presetPanel.style.display = "none";
+        resetBtn.style.display = "flex";
+        startButton.textContent = "Reset";
+        board.style.display = "grid";
+        prizeTicker.style.display = "block";
+      }
+
       function handleButtonClick() {
         if (startButton.textContent === "Start") {
-          controlsPanel.style.display = "none";
-          presetPanel.style.display = "none";
-          resetBtn.style.display = "flex";
-          startButton.textContent = "Reset";
-          board.style.display = "grid";
-          prizeTicker.style.display = "block";
           generateBoard();
         } else {
           board.innerHTML = "";
@@ -652,9 +784,16 @@
         localStorage.setItem("bingo_prizes", prizeRaw);
 
         const prizes = parsePrizes(prizeRaw);
-        if (prizes.length > total) return alert("상품이 칸 수보다 많습니다.");
+        const bountyOn = bountyToggle.checked;
+        if (prizes.length + (bountyOn ? 1 : 0) > total)
+          return alert(
+            bountyOn
+              ? "상품 + 현상 번호가 칸 수보다 많습니다."
+              : "상품이 칸 수보다 많습니다.",
+          );
 
         const values = [...prizes];
+        if (bountyOn) values.push(BOUNTY);
         while (values.length < total) values.push("꽝");
         for (let i = values.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -675,7 +814,9 @@
         values.forEach((val, index) => {
           board.appendChild(makeTile(val, index, values, prizes, false));
         });
-        buildTicker(prizes);
+        // Show before buildTicker: it measures offsetWidth, which is 0 while hidden.
+        showLiveUI();
+        buildTicker(values, clickedTiles);
       }
 
       /* ---------- tiles ----------
@@ -689,6 +830,10 @@
           tile.classList.add("fail");
           tile.textContent = "꽝";
           tile.setAttribute("aria-label", `${index + 1}번 꽝`);
+        } else if (val === BOUNTY) {
+          tile.classList.add("bounty");
+          tile.textContent = BOUNTY_LABEL;
+          tile.setAttribute("aria-label", `${index + 1}번 ${BOUNTY_LABEL}!`);
         } else {
           tile.classList.add("prize");
           tile.textContent = val;
@@ -710,9 +855,15 @@
           if (clickedTiles[index]) return;
           clickedTiles[index] = true;
           paintTile(tile, val, index);
-          playSound(val === "꽝" ? failAudio : winAudio);
+          if (val === BOUNTY) tile.classList.add("bounty-reveal");
+          markTickerWon(index);
+          playSound(
+            val === "꽝" ? failAudio : val === BOUNTY ? jackpotAudio : winAudio,
+          );
           announce(
-            val === "꽝" ? `${index + 1}번 꽝` : `${index + 1}번 당첨! ${val}`,
+            val === "꽝"
+              ? `${index + 1}번 꽝`
+              : `${index + 1}번 당첨! ${val === BOUNTY ? BOUNTY_LABEL : val}`,
           );
           saveBoardState(values, clickedTiles, prizes);
         });
@@ -725,15 +876,32 @@
         if (live) live.textContent = msg;
       }
 
-      function buildTicker(prizes) {
-        const tickerPrizes = prizes
-          .filter((p) => p !== "꽝")
-          .sort((a, b) => a.localeCompare(b));
+      /* One ticker entry per prize TILE (not per prize name), tagged with its
+         tile index, so a duplicate prize is struck out one copy at a time.
+         Prizes stay alphabetical; 잭팟 always goes last. */
+      function buildTicker(values, clicked) {
         const ticker = document.getElementById("prizeTicker");
-        if (tickerPrizes.length > 0) {
-          ticker.innerHTML = `<span>${tickerPrizes.join(" • ")}</span>`;
-          const span = ticker.querySelector("span"),
-            distance = span.offsetWidth + ticker.offsetWidth,
+        const items = values
+          .map((v, i) => ({ v, i }))
+          .filter(({ v }) => v !== "꽝")
+          .sort((a, b) =>
+            a.v === BOUNTY ? 1 : b.v === BOUNTY ? -1 : a.v.localeCompare(b.v),
+          );
+        ticker.innerHTML = "";
+        if (items.length > 0) {
+          const span = document.createElement("span");
+          items.forEach(({ v, i }, n) => {
+            if (n) span.append(" • ");
+            const item = document.createElement("span");
+            item.className = "ticker-item";
+            item.dataset.index = i;
+            if (v === BOUNTY) item.classList.add("bounty");
+            if (clicked[i]) item.classList.add("won");
+            item.textContent = v === BOUNTY ? BOUNTY_LABEL : v;
+            span.append(item);
+          });
+          ticker.append(span);
+          const distance = span.offsetWidth + ticker.offsetWidth,
             speed = 100;
           span.style.transform = `translateX(${ticker.offsetWidth}px)`;
           span.animate(
@@ -747,7 +915,12 @@
               easing: "linear",
             },
           );
-        } else ticker.innerHTML = "";
+        }
+      }
+
+      function markTickerWon(index) {
+        const item = prizeTicker.querySelector(`[data-index="${index}"]`);
+        if (item) item.classList.add("won");
       }
 
       function saveBoardState(values, clickedTiles, originalPrizes) {
@@ -777,21 +950,11 @@
             makeTile(val, index, state.values, state.prizes, !!state.clicked[index]),
           );
         });
-        if (state.started) {
-          controlsPanel.style.display = "none";
-          presetPanel.style.display = "none";
-          resetBtn.style.display = "flex";
-          startButton.textContent = "Reset";
-          board.style.display = "grid";
-          prizeTicker.style.display = "block";
-        }
+        if (state.started) showLiveUI();
         // Must run AFTER the ticker is shown: buildTicker sizes the scroll
         // animation from offsetWidth, which is 0 while display:none -- that
         // left the restored ticker frozen. (generateBoard already shows it first.)
-        buildTicker(
-          state.prizes ||
-            parsePrizes(document.getElementById("prizeNames").value),
-        );
+        buildTicker(state.values, state.clicked);
       }
 
       /* --- Preset Logic --- */
